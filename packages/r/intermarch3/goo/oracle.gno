@@ -43,9 +43,6 @@ var (
 // RequestData allows a user to request data from the oracle.
 // `RequesterReward` value needs to be sent to the contract as a reward
 // You need to ask a question that can be answered with a single number like a yes/no question (0 or 1) or a specific value (e.g. ETH/USD price).
-// @param ancillaryData - The human-readable question for the oracle.
-// @param yesNoQuestion - True if the question is a Yes/No question.
-// @param deadline - A Unix timestamp for when the request should be fulfilled (need to be more than now + 24h).
 func RequestData(cur realm, ancillaryData string, yesNoQuestion bool, deadline int64) string {
 	if ancillaryData == "" {
 		panic("error: Ancillary data cannot be empty.")
@@ -78,8 +75,6 @@ func RequestData(cur realm, ancillaryData string, yesNoQuestion bool, deadline i
 
 // ProposeValue allows a user to propose a value for a requested data point.
 // `Bond` value needs to be sent to the contract as a bond.
-// @param id - The ID of the data request.
-// @param proposedValue - The proposed answer to the question.
 func ProposeValue(cur realm, id string, proposedValue int64) {
 	request := getRequest(id)
 	if request.State != "Requested" {
@@ -92,7 +87,6 @@ func ProposeValue(cur realm, id string, proposedValue int64) {
 		panic("error: Deadline for proposal has passed.")
 	}
 
-	// TODO: check that proposerBond is x GNOT
 	coins := banker.OriginSend()
 	if len(coins) != 1 || coins.AmountOf("ugnot") != Bond {
 		panic("error: Incorrect bond amount sent. Required: " + strconv.FormatInt(Bond, 10) + " ugnot")
@@ -109,7 +103,6 @@ func ProposeValue(cur realm, id string, proposedValue int64) {
 
 // DisputeData allows a user to dispute a proposed value.
 // `Bond` value needs to be sent to the contract as a bond.
-// @param id - The ID of the data request to dispute.
 func DisputeData(cur realm, id string) string {
 	request := getRequest(id)
 	if request.Proposer == runtime.PreviousRealm().Address() {
@@ -122,7 +115,6 @@ func DisputeData(cur realm, id string) string {
 		panic("error: Dispute period has ended.")
 	}
 
-	// Vérifie que la caution a bien été envoyée.
 	coins := banker.OriginSend()
 	if len(coins) != 1 || coins.AmountOf("ugnot") != Bond {
 		panic("error: Incorrect bond amount sent. Required: " + strconv.FormatInt(Bond, 10) + " ugnot")
@@ -138,7 +130,6 @@ func DisputeData(cur realm, id string) string {
 }
 
 // ResolveRequest finalizes an undisputed request after the resolution period has passed.
-// @param id - The ID of the data request to resolve.
 func ResolveRequest(cur realm, id string) {
 	request := getRequest(id)
 	if request.State == "Disputed" {
@@ -157,7 +148,6 @@ func ResolveRequest(cur realm, id string) {
 	request.WinningValue = request.ProposedValue
 	Requests.Set(id, request)
 
-	// TODO: Return bonds + reward to proposer
 	from := runtime.CurrentRealm().Address()
 	to := request.Proposer
 	totalPayout := request.ProposerBond + RequesterReward
@@ -168,7 +158,6 @@ func ResolveRequest(cur realm, id string) {
 }
 
 // RequestResult returns the winning value of a resolved request.
-// @param id - The ID of the data request.
 func RequestResult(cur realm, id string) int64 {
 	request := getRequest(id)
 	if request.State != "Resolved" {
@@ -178,7 +167,6 @@ func RequestResult(cur realm, id string) int64 {
 }
 
 // RequesterRetreiveFund allows the original requester to get their reward back if the deadline passed without a proposal.
-// @param id - The ID of the data request.
 func RequesterRetreiveFund(cur realm, id string) {
 	request := getRequest(id)
 	if request.State != "Requested" {
@@ -204,7 +192,6 @@ func RequesterRetreiveFund(cur realm, id string) {
 // -- ADMIN FUNCTIONS --
 
 // SetResolutionDuration sets the duration (in seconds) for the resolution period.
-// @param duration - The new resolution duration in seconds.
 func SetResolutionDuration(_ realm, duration int64) {
 	if runtime.OriginCaller() == admin {
 		ResolutionTime = duration
@@ -215,7 +202,6 @@ func SetResolutionDuration(_ realm, duration int64) {
 }
 
 // SetRequesterReward sets the reward amount for a successful proposal.
-// @param reward - The new reward amount in ugnot.
 func SetRequesterReward(_ realm, reward int64) {
 	if runtime.OriginCaller() == admin {
 		RequesterReward = reward
@@ -226,7 +212,6 @@ func SetRequesterReward(_ realm, reward int64) {
 }
 
 // SetBond sets the bond amount required for proposals and disputes.
-// @param bond - The new bond amount in ugnot.
 func SetBond(_ realm, bond int64) {
 	if runtime.OriginCaller() == admin {
 		Bond = bond
@@ -237,7 +222,6 @@ func SetBond(_ realm, bond int64) {
 }
 
 // ChangeAdmin transfers admin privileges to a new address.
-// @param newAdmin - The address of the new admin.
 func ChangeAdmin(_ realm, newAdmin address) {
 	if runtime.OriginCaller() == admin {
 		admin = newAdmin
@@ -250,7 +234,6 @@ func ChangeAdmin(_ realm, newAdmin address) {
 // -- VIEW FUNCTIONS --
 
 // GetRequest returns the details of a specific data request.
-// @param id - The ID of the data request.
 func GetRequest(_ realm, id string) DataRequest {
 	return *getRequest(id)
 }
@@ -271,7 +254,6 @@ func GetRequesterReward(_ realm) int64 {
 }
 
 // GetRequestState returns the current state of a specific data request.
-// @param id - The ID of the data request.
 func GetRequestState(_ realm, id string) string {
 	request := getRequest(id)
 	return request.State

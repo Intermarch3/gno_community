@@ -90,8 +90,6 @@ func BalanceOfVoteToken(_ realm) int64 {
 }
 
 // VoteOnDispute allows a user to commit a vote during a dispute.
-// @param id - The ID of the dispute (same as Request ID).
-// @param hash - The SHA256 hash of the vote value and a secret salt.
 func VoteOnDispute(cur realm, id string, hash string) {
 	dispute := getDispute(id)
 	res, _ := Requests.Get(id)
@@ -128,9 +126,6 @@ func VoteOnDispute(cur realm, id string, hash string) {
 }
 
 // RevealVote allows a user to reveal their vote after the voting period has ended.
-// @param id - The ID of the dispute (same as Request ID).
-// @param value - The actual value of the vote.
-// @param salt - The secret salt used to generate the vote hash.
 func RevealVote(cur realm, id string, value int64, salt string) {
 	dispute := getDispute(id)
 	if dispute.IsResolved {
@@ -166,7 +161,6 @@ func RevealVote(cur realm, id string, value int64, salt string) {
 }
 
 // ResolveDispute finalizes a dispute after the reveal period, tallying votes and setting the winning value.
-// @param id - The ID of the dispute to resolve (same as Request ID).
 func ResolveDispute(cur realm, id string) {
 	dispute := getDispute(id)
 	if dispute.IsResolved {
@@ -202,7 +196,6 @@ func ResolveDispute(cur realm, id string) {
 // -- admin functions --
 
 // SetDisputeDuration sets the duration (in seconds) for the voting period.
-// @param duration - The new dispute duration in seconds.
 func SetDisputeDuration(_ realm, duration int64) {
 	if runtime.OriginCaller() == admin {
 		DisputeDuration = duration * int64(time.Second)
@@ -212,7 +205,6 @@ func SetDisputeDuration(_ realm, duration int64) {
 }
 
 // SetRevealDuration sets the duration (in seconds) for the reveal period.
-// @param duration - The new reveal duration in seconds.
 func SetRevealDuration(_ realm, duration int64) {
 	if runtime.OriginCaller() == admin {
 		RevealDuration = duration * int64(time.Second)
@@ -222,7 +214,6 @@ func SetRevealDuration(_ realm, duration int64) {
 }
 
 // SetVoteTokenPrice sets the price (in ugnot) to cast a vote.
-// @param price - The new vote price.
 func SetVoteTokenPrice(_ realm, price int64) {
 	if runtime.OriginCaller() == admin {
 		VoteTokenPrice = price
@@ -234,7 +225,6 @@ func SetVoteTokenPrice(_ realm, price int64) {
 // -- view functions --
 
 // GetDispute returns the details of a specific dispute.
-// @param id - The ID of the dispute (same as Request ID).
 func GetDispute(_ realm, id string) Dispute {
 	return *getDispute(id)
 }
@@ -250,21 +240,18 @@ func GetVoteTokenPrice(_ realm) int64 {
 }
 
 // GetDisputeEndTime returns the end time of the voting period for a specific dispute.
-// @param id - The ID of the dispute (same as Request ID).
 func GetDisputeEndTime(_ realm, id string) time.Time {
 	dispute := getDispute(id)
 	return dispute.EndTime
 }
 
 // GetDisputeVotesAmount returns the total number of votes cast in a dispute.
-// @param id - The ID of the dispute (same as Request ID).
 func GetDisputeVotesAmount(_ realm, id string) int64 {
 	dispute := getDispute(id)
 	return int64(len(dispute.Votes))
 }
 
 // GetRevealEndTime returns the end time of the reveal period for a specific dispute.
-// @param id - The ID of the dispute (same as Request ID).
 func GetRevealEndTime(_ realm, id string) time.Time {
 	dispute := getDispute(id)
 	return dispute.EndRevealTime
