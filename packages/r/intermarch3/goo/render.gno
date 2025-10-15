@@ -133,7 +133,7 @@ func renderRevealedVotes(dispute Dispute) string {
 	request := getRequest(dispute.RequestId)
 	for _, vote := range dispute.Votes {
 		if vote.Revealed {
-			table = append(table, md.Paragraph(vote.Voter.String()), md.Paragraph(rendervalue(*request, vote.Value)), md.Paragraph(strconv.Itoa(int(vote.TokenAmount))))
+			table = append(table, md.Paragraph(vote.Voter.String()), md.Paragraph(rendervalue(request, vote.Value)), md.Paragraph(strconv.Itoa(int(vote.TokenAmount))))
 		}
 	}
 	return md.ColumnsN(table, 3, false)

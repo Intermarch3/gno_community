@@ -235,7 +235,7 @@ func ChangeAdmin(_ realm, newAdmin address) {
 
 // GetRequest returns the details of a specific data request.
 func GetRequest(_ realm, id string) DataRequest {
-	return *getRequest(id)
+	return getRequest(id)
 }
 
 // GetBond returns the current bond amount.
@@ -267,10 +267,10 @@ func GetAdmin(_ realm) address {
 
 // Utils functions
 
-func getRequest(id string) *DataRequest {
+func getRequest(id string) DataRequest {
 	request, exists := Requests.Get(id)
 	if !exists {
 		panic("error: Request with this ID does not exist.")
 	}
-	return request.(*DataRequest)
+	return request.(DataRequest)
 }
