@@ -25,13 +25,13 @@ func renderHome() string {
 	msg := md.H1("OO Home")
 	msg += md.Paragraph("Welcome to the first Optimistic Oracle on GnoLand! This project is developed by " + md.Link("@intermarch3", "/r/intermarch3/home"))
 	msg += md.Paragraph("For more information, visit the " + md.Link("Readme", runtime.CurrentRealm().PkgPath()[8:]+"$source") + ".")
-	msg += md.Link("Request Data", ufmt.Sprintf("%s", txlink.NewLink("RequestData").AddArgs("ancillaryData", "YOUR_QUESTION", "yesNoQuestion", "true or false", "deadline", "DEADLINE_TIMESTAMP").SetSend(strconv.Itoa(int(RequesterReward))).URL())) + "\n\n(Note: Requesting data need to pay a reward of " + strconv.Itoa(int(RequesterReward/1_000_000)) + " GNOT to the proposer).\n\n"
+	msg += md.Link("Request Data", ufmt.Sprintf("%s", txlink.NewLink("RequestData").AddArgs("ancillaryData", "YOUR_QUESTION", "yesNoQuestion", "true or false", "deadline", "DEADLINE_TIMESTAMP").SetSend(strconv.Itoa(int(RequesterReward))+"ugnot").URL())) + "\n\n(Note: Requesting data need to pay a reward of " + strconv.Itoa(int(RequesterReward/1_000_000)) + " GNOT to the proposer).\n\n"
 	msg += md.H2("Current Requests :")
 	// List current requests
 	var table []string
 	table = append(table, md.Bold("Question"), md.Bold("Proposed Value"), md.Bold("State"), md.Bold("See more"))
 	Requests.Iterate("", "", func(key string, value any) bool {
-		if value.(*DataRequest).State == "Resolved" {
+		if value.(DataRequest).State == "Resolved" {
 			return false
 		}
 		table = append(table, renderRequest(value.(DataRequest))...)
@@ -48,13 +48,13 @@ func renderHome() string {
 	var resolved []string
 	resolved = append(resolved, md.Bold("Question"), md.Bold("Winning Value"), md.Bold("Proposer"), md.Bold("See more"))
 	Requests.Iterate("", "", func(key string, value any) bool {
-		if value.(*DataRequest).State == "Resolved" {
+		if value.(DataRequest).State != "Resolved" {
 			return false
 		}
-		resolved = append(resolved, md.Paragraph(value.(*DataRequest).AncillaryData))
-		resolved = append(resolved, md.Paragraph(rendervalue(value.(DataRequest), value.(*DataRequest).WinningValue)))
-		resolved = append(resolved, md.Paragraph(value.(*DataRequest).Proposer.String()))
-		resolved = append(resolved, md.Link("Click here", runtime.CurrentRealm().PkgPath()[8:]+":"+value.(*DataRequest).Id))
+		resolved = append(resolved, md.Paragraph(value.(DataRequest).AncillaryData))
+		resolved = append(resolved, md.Paragraph(rendervalue(value.(DataRequest), value.(DataRequest).WinningValue)))
+		resolved = append(resolved, md.Paragraph(value.(DataRequest).Proposer.String()))
+		resolved = append(resolved, md.Link("Click here", runtime.CurrentRealm().PkgPath()[8:]+":"+value.(DataRequest).Id))
 		return false
 	})
 	msg += md.ColumnsN(resolved, 4, false)
@@ -66,7 +66,7 @@ func renderHome() string {
 
 func renderRequestPage(id string) string {
 	res, exists := Requests.Get(id)
-	req := res.(*DataRequest)
+	req := res.(DataRequest)
 	if !exists {
 		return md.H1("error: No request with this ID exists.")
 	}
@@ -82,11 +82,11 @@ func renderRequestPage(id string) string {
 	if req.State == "Requested" {
 		msg += md.Paragraph("This request has not been proposed yet.") + "\n\n"
 		msg += md.H3("The reward for the proposer is "+strconv.Itoa(int(RequesterReward/1_000_000))+" GNOT.") + "\n\n"
-		msg += renderAction(*req)
+		msg += renderAction(req)
 		return msg
 	}
 	if req.State == "Resolved" {
-		msg += md.H3("Winning Value: "+rendervalue(*req, req.WinningValue)) + "\n\n"
+		msg += md.H3("Winning Value: "+rendervalue(req, req.WinningValue)) + "\n\n"
 		dispute, exist := Disputes.Get(req.Id)
 		if !exist {
 			msg += md.Paragraph("Value Proposed by: "+req.Proposer.String()) + "\n\n"
@@ -103,7 +103,7 @@ func renderRequestPage(id string) string {
 	}
 	if req.State == "Proposed" {
 		msg += md.Paragraph("Proposed by: "+req.Proposer.String()) + "\n\n"
-		msg += md.H3("Proposed Value: "+rendervalue(*req, req.ProposedValue)) + "\n\n"
+		msg += md.H3("Proposed Value: "+rendervalue(req, req.ProposedValue)) + "\n\n"
 		msg += md.H3("End Resolution Time: "+req.ResolutionTime.Format(DateFormat)) + "\n\n"
 	}
 	if req.State == "Disputed" {
@@ -123,7 +123,7 @@ func renderRequestPage(id string) string {
 			msg += md.Paragraph("No dispute details available.\n\n")
 		}
 	}
-	msg += renderAction(*req)
+	msg += renderAction(req)
 	return msg
 }
 
