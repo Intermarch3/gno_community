@@ -34,7 +34,6 @@ func RequestData(cur realm, ancillaryData string, yesNoQuestion bool, deadline i
 		panic("error: Deadline must be at least 24 hours in the future.")
 	}
 
-	// TODO: check that x GNOT is sent as reward
 	coins := banker.OriginSend()
 	if len(coins) != 1 || coins.AmountOf("ugnot") != RequesterReward {
 		panic("error: Incorrect reward amount sent. Required: " + strconv.FormatInt(RequesterReward, 10) + " ugnot.")

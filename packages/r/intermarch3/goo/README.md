@@ -51,7 +51,7 @@ A **Disputer** can challenge the Proposer's value.
 ### 5. Voting (`VoteOnDispute`)
 The dispute is now open for voting by all Oracle Soulbound Token holders. The system uses a **commit-reveal scheme** to prevent vote-copying.
 
-- **Commit Phase**: During the `DisputeDuration`, voters submit a hash of their vote (`SHA256(value + salt)`) by calling `VoteOnDispute`. They must also pay a small `VotePrice` fee. // todo
+- **Commit Phase**: During the `DisputeDuration`, voters submit a hash of their vote (`SHA256(value + salt)`) by calling `VoteOnDispute`. They must also pay a small `VotePrice` fee.
 - **Reveal Phase**: After the commit phase ends, the `RevealDuration` begins. Voters must call `RevealVote`, submitting their original `value` and `salt`. The contract verifies that the hash matches the one submitted during the commit phase.
 
 ### 6. Dispute Resolution (`ResolveDispute`)
