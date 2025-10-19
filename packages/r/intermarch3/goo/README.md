@@ -62,7 +62,7 @@ Once the reveal period is over, anyone can call `ResolveDispute`.
 
 ## Architecture
 
-The oracle is composed of three main contracts:
+The oracle contract is composed of three main files :
 
 - `oracle.gno`: Manages the data request lifecycle (request, propose, dispute, resolve). It is the main entry point for users.
 - `court.gno`: Handles the entire dispute resolution process, including the commit-reveal voting scheme.
@@ -89,32 +89,32 @@ Here is a full workflow using `gnokey`.
 **0. Buy Vote Token for Voter Role**
 ```bash
 # Buy Oracle Soulbound Token (replace <voter-key-name> with your key name)
-gnokey maketx call -pkgpath "gno.land/r/intermarch3/oo" -func "BuyInitialVoteToken" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "1000000ugnot" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <voter-key-name>
+gnokey maketx call -pkgpath "gno.land/r/intermarch3/goo" -func "BuyInitialVoteToken" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "1000000ugnot" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <voter-key-name>
 ```
 
 
 **1. Request Data**
 ```bash
 # Ask a Yes/No question: "Will ETH be below $4000 ?" (replace DEADLINE_TIMESTAMP with a future unix timestamp more than 24h from now)
-gnokey maketx call -pkgpath "gno.land/r/intermarch3/oo" -func "RequestData" -args "ETH below 4000$ ?" -args "true" -args "DEADLINE_TIMESTAMP" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "1000000ugnot" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <your-key-name>
+gnokey maketx call -pkgpath "gno.land/r/intermarch3/goo" -func "RequestData" -args "ETH below 4000$ ?" -args "true" -args "DEADLINE_TIMESTAMP" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "1000000ugnot" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <your-key-name>
 ```
 
 **2. Propose a Value**
 ```bash
 # Propose "Yes" (value 1) (replace ID with the actual ID returned from the RequestData call)
-gnokey maketx call -pkgpath "gno.land/r/intermarch3/oo" -func "ProposeValue" -args "ID" -args "0" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "2000000ugnot" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <proposer-key-name>
+gnokey maketx call -pkgpath "gno.land/r/intermarch3/goo" -func "ProposeValue" -args "ID" -args "0" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "2000000ugnot" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <proposer-key-name>
 ```
 
 **If no one disputes within the liveness period, anyone can resolve the request:**
 ```bash
 # Resolve the request (replace ID with the actual ID)
-gnokey maketx call -pkgpath "gno.land/r/intermarch3/oo" -func "ResolveRequest" -args "ID" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <any-key-name>
+gnokey maketx call -pkgpath "gno.land/r/intermarch3/goo" -func "ResolveRequest" -args "ID" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <any-key-name>
 ```
 
 **3. Dispute the Value**
 ```bash
 # Dispute the proposal (replace ID with the actual ID)
-gnokey maketx call -pkgpath "gno.land/r/intermarch3/oo" -func "DisputeData" -args "ID" -gas-fee 1000000ugnot -gas-wanted 5000000 -send "2000000ugnot" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <disputer-key-name>
+gnokey maketx call -pkgpath "gno.land/r/intermarch3/goo" -func "DisputeData" -args "ID" -gas-fee 1000000ugnot -gas-wanted 5000000 -send "2000000ugnot" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <disputer-key-name>
 ```
 
 **4. Vote on the Dispute**
@@ -122,19 +122,19 @@ First, generate a hash locally. Let's vote "No" (value 0) with salt "mysecret".
 Hash: `sha256("0" + "test")` -> `a96e0beb59a16b085a7d2b3b5ffd6e5971870aa2903c6df86f26fa908ded2e21`
 ```bash
 # Commit the vote (replace ID with the actual ID)
-ggnokey maketx call -pkgpath "gno.land/r/intermarch3/oo" -func "VoteOnDispute" -args "ID" -args "a96e0beb59a16b085a7d2b3b5ffd6e5971870aa2903c6df86f26fa908ded2e21" -gas-fee 1000000ugnot -gas-wanted 5000000 -send "" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <voter-key-name>
+ggnokey maketx call -pkgpath "gno.land/r/intermarch3/goo" -func "VoteOnDispute" -args "ID" -args "a96e0beb59a16b085a7d2b3b5ffd6e5971870aa2903c6df86f26fa908ded2e21" -gas-fee 1000000ugnot -gas-wanted 5000000 -send "" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <voter-key-name>
 ```
 
 **5. Reveal the Vote**
 ```bash
 # Reveal the vote after the voting period ends (replace ID with the actual ID)
-gnokey maketx call -pkgpath "gno.land/r/intermarch3/oo" -func "RevealVote" -args "ID" -args "0" -args "test" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <voter-key-name>
+gnokey maketx call -pkgpath "gno.land/r/intermarch3/goo" -func "RevealVote" -args "ID" -args "0" -args "test" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <voter-key-name>
 ```
 
 **6. Resolve the Dispute**
 ```bash
 # After the reveal period, anyone can trigger the final resolution (replace ID with the actual ID).
-gnokey maketx call -pkgpath "gno.land/r/intermarch3/oo" -func "ResolveDispute" -args "ID" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <any-key-name>
+gnokey maketx call -pkgpath "gno.land/r/intermarch3/goo" -func "ResolveDispute" -args "ID" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <any-key-name>
 ```  
 
 When testing with `gnodev` locally, ensure to make transactions between waiting periods as `gnodev` only creates blocks when a transaction is made, and the oracle relies on current block timestamps.

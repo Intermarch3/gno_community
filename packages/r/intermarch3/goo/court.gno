@@ -4,50 +4,22 @@ import (
 	"chain"
 	"chain/banker"
 	"chain/runtime"
-	"gno.land/p/nt/avl"
 	"strconv"
 	"time"
-
 	"crypto/sha256"
 	"encoding/hex"
+
+	"gno.land/p/nt/avl"
 )
 
-type Vote struct {
-	RequestId   string
-	Voter       address
-	TokenAmount int64
-	Hash        string
-	Value       int64
-	Revealed    bool
-}
-
-type Voter struct {
-	HasVoted  bool
-	VoteIndex int64
-}
-
-type Dispute struct {
-	RequestId       string
-	Votes           []Vote
-	NbResolvedVotes int64
-	Voters          *avl.Tree
-	IsResolved      bool
-	WinningValue    int64
-	EndTime         time.Time
-	EndRevealTime   time.Time
-}
 
 var (
 	Disputes        = avl.NewTree()
 	DisputeDuration = 2 * int64(time.Minute.Seconds())
 	RevealDuration  = 2 * int64(time.Minute.Seconds())
 	VoteTokenPrice  = 1 * int64(1_000_000) // in GNOT
-	VoteToken       *OOT
+	VoteToken       = newOOToken("Gno Optimistic Oracle Token", "goot", 6)
 )
-
-func init() {
-	VoteToken = newOOToken("Gno Optimistic Oracle Token", "goot", 6)
-}
 
 func initiateDispute(id string) {
 	if _, exists := Disputes.Get(id); exists {
@@ -93,7 +65,7 @@ func BalanceOfVoteToken(_ realm) int64 {
 func VoteOnDispute(cur realm, id string, hash string) {
 	dispute := getDispute(id)
 	res, _ := Requests.Get(id)
-	request := res.(*DataRequest)
+	request := res.(DataRequest)
 	if request.Proposer == runtime.PreviousRealm().Address() || request.Disputer == runtime.PreviousRealm().Address() {
 		panic("error: Proposer and Disputer cannot vote in this dispute.")
 	}
@@ -138,10 +110,10 @@ func RevealVote(cur realm, id string, value int64, salt string) {
 		panic("error: Reveal period has ended.")
 	}
 	voter, exist := dispute.Voters.Get(string(runtime.PreviousRealm().Address()))
-	if !exist || !voter.(*Voter).HasVoted {
+	if !exist || !voter.(Voter).HasVoted {
 		panic("error: Voter did not participate in this dispute.")
 	}
-	vote := dispute.Votes[voter.(*Voter).VoteIndex]
+	vote := dispute.Votes[voter.(Voter).VoteIndex]
 	if vote.Revealed {
 		panic("error: Vote already revealed.")
 	}
@@ -155,7 +127,7 @@ func RevealVote(cur realm, id string, value int64, salt string) {
 	vote.Value = value
 	vote.Revealed = true
 	dispute.NbResolvedVotes += 1
-	dispute.Votes[voter.(*Voter).VoteIndex] = vote
+	dispute.Votes[voter.(Voter).VoteIndex] = vote
 	Disputes.Set(id, dispute)
 	chain.Emit("VoteRevealed", "id", id, "voter", vote.Voter.String(), "value", strconv.Itoa(int(value)))
 }
@@ -226,7 +198,7 @@ func SetVoteTokenPrice(_ realm, price int64) {
 
 // GetDispute returns the details of a specific dispute.
 func GetDispute(_ realm, id string) Dispute {
-	return *getDispute(id)
+	return getDispute(id)
 }
 
 // GetDisputeDuration returns the current dispute duration.
@@ -265,10 +237,10 @@ func GetRevealDuration(_ realm) int64 {
 
 // Utils functions
 
-func getDispute(id string) *Dispute {
+func getDispute(id string) Dispute {
 	dispute, exists := Disputes.Get(id)
 	if !exists {
 		panic("error: Dispute with this ID does not exist.")
 	}
-	return dispute.(*Dispute)
+	return dispute.(Dispute)
 }

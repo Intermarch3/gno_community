@@ -4,11 +4,6 @@ import (
 	"gno.land/p/demo/tokens/grc20"
 )
 
-type OOT struct {
-	*grc20.Token
-	*grc20.PrivateLedger
-}
-
 func newOOToken(name, symbol string, decimals int) *OOT {
 	token := &OOT{}
 	t, adm := grc20.NewToken(name, symbol, decimals)

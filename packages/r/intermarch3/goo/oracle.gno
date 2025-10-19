@@ -11,23 +11,6 @@ import (
 	"gno.land/p/nt/seqid"
 )
 
-type DataRequest struct {
-	Id             string
-	Creator        address
-	Timestamp      time.Time
-	AncillaryData  string
-	YesNoQuestion  bool
-	ProposedValue  int64
-	Proposer       address
-	ProposerBond   int64
-	Disputer       address
-	DisputerBond   int64
-	ResolutionTime time.Time
-	WinningValue   int64
-	State          string // "Requested", "Proposed", "Disputed", "Resolved"
-	Deadline       time.Time
-}
-
 var (
 	admin           = address("g1qdwemgqgqm7s42gy6xcj7f22uhfdzr82st3sy3")
 	ResolutionTime  = 2 * int64(time.Minute.Seconds())

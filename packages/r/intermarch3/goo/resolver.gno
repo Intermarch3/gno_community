@@ -11,12 +11,11 @@ func resolve(id string) int64 {
 	if dispute.NbResolvedVotes == 0 {
 		// If no one voted or reveal their vote, the proposed value wins by default
 		return request.ProposedValue
+	}
+	if request.YesNoQuestion {
+		return resolveYesNo(dispute)
 	} else {
-		if request.YesNoQuestion {
-			return resolveYesNo(*dispute)
-		} else {
-			return resolveNumeric(*dispute)
-		}
+		return resolveNumeric(dispute)
 	}
 }
 
