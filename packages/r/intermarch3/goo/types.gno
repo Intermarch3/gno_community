@@ -3,8 +3,8 @@ package goo
 import (
 	"time"
 
-	"gno.land/p/nt/avl"
 	"gno.land/p/demo/tokens/grc20"
+	"gno.land/p/nt/avl"
 )
 
 // court.gno

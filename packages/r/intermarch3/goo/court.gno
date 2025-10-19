@@ -4,14 +4,13 @@ import (
 	"chain"
 	"chain/banker"
 	"chain/runtime"
-	"strconv"
-	"time"
 	"crypto/sha256"
 	"encoding/hex"
+	"strconv"
+	"time"
 
 	"gno.land/p/nt/avl"
 )
-
 
 var (
 	Disputes        = avl.NewTree()
@@ -233,7 +232,6 @@ func GetRevealEndTime(_ realm, id string) time.Time {
 func GetRevealDuration(_ realm) int64 {
 	return RevealDuration
 }
-
 
 // Utils functions
 

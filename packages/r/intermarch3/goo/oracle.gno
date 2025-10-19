@@ -247,7 +247,6 @@ func GetAdmin(_ realm) address {
 	return admin
 }
 
-
 // Utils functions
 
 func getRequest(id string) DataRequest {
