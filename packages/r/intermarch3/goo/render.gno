@@ -74,10 +74,10 @@ func renderHome() string {
 // renderRequestPage renders the page for a specific request
 func renderRequestPage(id string) string {
 	res, exists := Requests.Get(id)
-	req := res.(DataRequest)
 	if !exists {
 		return md.H1("error: No request with this ID exists.")
 	}
+	req := res.(DataRequest)
 
 	msg := md.H1("Question: " + req.AncillaryData)
 	msg += md.H2("Details:\n\n")
@@ -102,12 +102,12 @@ func renderRequestPage(id string) string {
 	// if the request is resolved, show the winning value and the number of votes
 	if req.State == "Resolved" {
 		msg += md.H3("Winning Value: "+rendervalue(req, req.WinningValue)) + "\n\n"
-		res, exist := Disputes.Get(req.Id)
-		dispute := res.(Dispute)
-		if !exist {
+		res, exists = Disputes.Get(req.Id)
+		if !exists {
 			msg += md.Paragraph("Value Proposed by: "+req.Proposer.String()) + "\n\n"
 			return msg
 		}
+		dispute := res.(Dispute)
 		msg += md.Paragraph("Number of Votes: " + strconv.Itoa(len(dispute.Votes)) + "\n\n")
 		msg += md.Paragraph("Reveal Votes: \n\n")
 		if dispute.NbResolvedVotes > 0 {

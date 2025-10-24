@@ -3,6 +3,7 @@ package goo
 import (
 	"time"
 	"chain"
+	"chain/runtime"
 	"testing"
 	"strconv"
 
@@ -149,7 +150,6 @@ func TestResolveRequest(t *testing.T) {
 
 	// propose a value
 	testing.SetRealm(testing.NewUserRealm(user1))
-	testing.IssueCoins(user1, chain.Coins{{Denom: "ugnot", Amount: Bond}})
 	testing.SetOriginSend(chain.Coins{{Denom: "ugnot", Amount: Bond}})
 	ProposeValue(cross, id, 0)
 
@@ -159,9 +159,35 @@ func TestResolveRequest(t *testing.T) {
 	}, "user should not be able to resolve a request if the resolution period has not ended yet")
 
 	setTime(now.Add(time.Duration(ResolutionTime) * time.Second + time.Second))
+	CreateGnotCoins(cross, Bond + RequesterReward)
 	urequire.NotPanics(t, func() {
 		ResolveRequest(cross, id)
 	}, "user should be able to resolve a request")
+
+	testing.SetRealm(testing.NewUserRealm(user1))
+	urequire.AbortsWithMessage(t, "error: Request is already resolved.", func() {
+		ResolveRequest(cross, id)
+	}, "user should not be able to resolve a request if it is already resolved")
+}
+
+func TestRequesterRetreiveFund(t *testing.T) {
+	// setup: create request
+	testing.SetRealm(testing.NewUserRealm(user1))
+	testing.SetOriginSend([]chain.Coin{{Denom: "ugnot", Amount: RequesterReward}})
+	duration := time.Now().Add(24*time.Hour)
+	id := RequestData(cross, "test", true, duration.Unix())
+
+	testing.SetRealm(testing.NewUserRealm(user2))
+	urequire.AbortsWithMessage(t, "error: Only the creator of the request can retrieve the fund.", func() {
+		RequesterRetreiveFund(cross, id)
+	}, "only requester should be able to retrieve funds")
+
+	testing.SetRealm(testing.NewUserRealm(user1))
+	setTime(duration.Add(time.Hour))
+	CreateGnotCoins(cross, RequesterReward)
+	urequire.NotPanics(t, func() {
+		RequesterRetreiveFund(cross, id)
+	}, "requester should be able to retrieve funds")
 }
 
 // Helper functions
@@ -170,4 +196,8 @@ func setTime(newTime time.Time) {
 	ctx := testing.GetContext()
 	ctx.Time = newTime
 	testing.SetContext(ctx)
+}
+
+func CreateGnotCoins(_ realm, amount int64) {
+	testing.IssueCoins(runtime.CurrentRealm().Address(), chain.Coins{{Denom: "ugnot", Amount: amount}})
 }

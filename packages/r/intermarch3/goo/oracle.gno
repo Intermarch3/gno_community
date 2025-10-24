@@ -26,7 +26,7 @@ var (
 // RequestData allows a user to request data from the oracle.
 // `RequesterReward` value needs to be sent to the contract as a reward
 // You need to ask a question that can be answered with a single number like a yes/no question (0 or 1) or a specific value (e.g. ETH/USD price).
-func RequestData(cur realm, ancillaryData string, yesNoQuestion bool, deadline int64) string {
+func RequestData(_ realm, ancillaryData string, yesNoQuestion bool, deadline int64) string {
 	if ancillaryData == "" {
 		panic("error: Ancillary data cannot be empty.")
 	}
@@ -57,7 +57,7 @@ func RequestData(cur realm, ancillaryData string, yesNoQuestion bool, deadline i
 
 // ProposeValue allows a user to propose a value for a requested data point.
 // `Bond` value needs to be sent to the contract as a bond.
-func ProposeValue(cur realm, id string, proposedValue int64) {
+func ProposeValue(_ realm, id string, proposedValue int64) {
 	request := getRequest(id)
 	if request.State != "Requested" {
 		panic("error: Request is not in 'Requested' state.")
@@ -85,7 +85,7 @@ func ProposeValue(cur realm, id string, proposedValue int64) {
 
 // DisputeData allows a user to dispute a proposed value.
 // `Bond` value needs to be sent to the contract as a bond.
-func DisputeData(cur realm, id string) string {
+func DisputeData(_ realm, id string) string {
 	request := getRequest(id)
 	if request.Proposer == runtime.PreviousRealm().Address() {
 		panic("error: Proposer cannot dispute their own proposal.")
@@ -112,7 +112,7 @@ func DisputeData(cur realm, id string) string {
 }
 
 // ResolveRequest finalizes an undisputed request after the resolution period has passed.
-func ResolveRequest(cur realm, id string) {
+func ResolveRequest(_ realm, id string) {
 	request := getRequest(id)
 	if request.State == "Disputed" {
 		panic("error: Request is in 'Disputed' state.")
@@ -140,7 +140,7 @@ func ResolveRequest(cur realm, id string) {
 }
 
 // RequestResult returns the winning value of a resolved request.
-func RequestResult(cur realm, id string) int64 {
+func RequestResult(_ realm, id string) int64 {
 	request := getRequest(id)
 	if request.State != "Resolved" {
 		panic("error: Request is not resolved.")
@@ -149,16 +149,16 @@ func RequestResult(cur realm, id string) int64 {
 }
 
 // RequesterRetreiveFund allows the original requester to get their reward back if the deadline passed without a proposal.
-func RequesterRetreiveFund(cur realm, id string) {
+func RequesterRetreiveFund(_ realm, id string) {
 	request := getRequest(id)
 	if request.State != "Requested" {
 		panic("error: cannot retreive fund as requests fulfilled.")
 	}
 	if request.Creator != runtime.PreviousRealm().Address() {
-		panic("error: Only the creator of the request can retreive the fund.")
+		panic("error: Only the creator of the request can retrieve the fund.")
 	}
 	if request.Deadline.After(time.Now()) {
-		panic("error: Cannot retreive fund before the deadline.")
+		panic("error: Cannot retrieve fund before the deadline.")
 	}
 
 	from := runtime.CurrentRealm().Address()

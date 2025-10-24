@@ -61,7 +61,7 @@ func BalanceOfVoteToken(_ realm) int64 {
 }
 
 // VoteOnDispute allows a user to commit a vote during a dispute.
-func VoteOnDispute(cur realm, id string, hash string) {
+func VoteOnDispute(_ realm, id string, hash string) {
 	dispute := getDispute(id)
 	res, _ := Requests.Get(id)
 	request := res.(DataRequest)
@@ -87,7 +87,7 @@ func VoteOnDispute(cur realm, id string, hash string) {
 		Revealed:    false,
 	}
 	voter, exist := dispute.Voters.Get(string(vote.Voter))
-	if exist && voter.(*Voter).HasVoted {
+	if exist && voter.(Voter).HasVoted {
 		panic("error: Voter has already voted in this dispute.")
 	}
 	dispute.Votes = append(dispute.Votes, vote)
@@ -97,7 +97,7 @@ func VoteOnDispute(cur realm, id string, hash string) {
 }
 
 // RevealVote allows a user to reveal their vote after the voting period has ended.
-func RevealVote(cur realm, id string, value int64, salt string) {
+func RevealVote(_ realm, id string, value int64, salt string) {
 	dispute := getDispute(id)
 	if dispute.IsResolved {
 		panic("error: Dispute is resolved.")
@@ -132,7 +132,7 @@ func RevealVote(cur realm, id string, value int64, salt string) {
 }
 
 // ResolveDispute finalizes a dispute after the reveal period, tallying votes and setting the winning value.
-func ResolveDispute(cur realm, id string) {
+func ResolveDispute(DEADLINE_TIMESTAMP realm, id string) {
 	dispute := getDispute(id)
 	if dispute.IsResolved {
 		panic("error: Dispute is already resolved.")
