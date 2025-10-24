@@ -2,19 +2,19 @@ package goo
 
 import (
 	"chain"
-	"testing"
 	"strconv"
+	"testing"
 	"time"
 
-	"gno.land/p/nt/urequire"
 	"gno.land/p/nt/testutils"
+	"gno.land/p/nt/urequire"
 )
 
 var user4 = testutils.TestAddress("user4")
 
 func TestBuyInitialVoteToken(t *testing.T) {
 	testing.SetRealm(testing.NewUserRealm(user1))
-	urequire.AbortsWithMessage(t, "error: Must send exactly " + strconv.Itoa(int(VoteTokenPrice/1_000_000)) + " gnot to get a vote token.", func() {
+	urequire.AbortsWithMessage(t, "error: Must send exactly "+strconv.Itoa(int(VoteTokenPrice/1_000_000))+" gnot to get a vote token.", func() {
 		BuyInitialVoteToken(cross)
 	}, "user should not be able to buy a vote token without sending the correct amount")
 
@@ -74,7 +74,7 @@ func TestVoteOnDispute(t *testing.T) {
 	}, "user should not be able to vote on dispute if they have already voted")
 
 	testing.SetRealm(testing.NewUserRealm(user4))
-	setTime(time.Now().Add(time.Duration(DisputeDuration) * time.Second + time.Second))
+	setTime(time.Now().Add(time.Duration(DisputeDuration)*time.Second + time.Second))
 	urequire.AbortsWithMessage(t, "error: Vote period has ended.", func() {
 		VoteOnDispute(cross, id, "hash")
 	}, "user should not be able to vote on dispute after the voting period has ended")
@@ -99,7 +99,7 @@ func TestRevealVote(t *testing.T) {
 	VoteOnDispute(cross, id, "a96e0beb59a16b085a7d2b3b5ffd6e5971870aa2903c6df86f26fa908ded2e21")
 
 	testing.SetRealm(testing.NewUserRealm(user3))
-	setTime(time.Now().Add(time.Duration(DisputeDuration) * time.Second + time.Second))
+	setTime(time.Now().Add(time.Duration(DisputeDuration)*time.Second + time.Second))
 	urequire.AbortsWithMessage(t, "error: Hash does not match the revealed value and salt.", func() {
 		RevealVote(cross, id, 1, "mysalt")
 	}, "vote reveal with incorrect value and salt should fail")
@@ -133,11 +133,11 @@ func TestResolveDispute(t *testing.T) {
 	// vote on dispute
 	testing.SetRealm(testing.NewUserRealm(user3))
 	VoteOnDispute(cross, id, "a96e0beb59a16b085a7d2b3b5ffd6e5971870aa2903c6df86f26fa908ded2e21")
-	setTime(time.Now().Add(time.Duration(DisputeDuration) * time.Second + time.Second))
+	setTime(time.Now().Add(time.Duration(DisputeDuration)*time.Second + time.Second))
 	RevealVote(cross, id, 0, "test")
 
-	setTime(time.Now().Add(time.Duration(RevealDuration) * time.Second + time.Second))
-	CreateGnotCoins(cross, (Bond * 2) + RequesterReward)
+	setTime(time.Now().Add(time.Duration(RevealDuration)*time.Second + time.Second))
+	CreateGnotCoins(cross, (Bond*2)+RequesterReward)
 	urequire.NotPanics(t, func() {
 		ResolveDispute(cross, id)
 	}, "user should be able to resolve dispute after the reveal period has ended")

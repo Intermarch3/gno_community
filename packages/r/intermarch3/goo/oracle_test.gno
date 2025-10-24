@@ -1,11 +1,11 @@
 package goo
 
 import (
-	"time"
 	"chain"
 	"chain/runtime"
-	"testing"
 	"strconv"
+	"testing"
+	"time"
 
 	"gno.land/p/nt/testutils"
 	"gno.land/p/nt/urequire"
@@ -19,7 +19,7 @@ var (
 
 func TestRequestData(t *testing.T) {
 	testing.SetRealm(testing.NewUserRealm(user1))
-	urequire.AbortsWithMessage(t, "error: Incorrect reward amount sent. Required: " + strconv.FormatInt(RequesterReward, 10) + " ugnot.", func() {
+	urequire.AbortsWithMessage(t, "error: Incorrect reward amount sent. Required: "+strconv.FormatInt(RequesterReward, 10)+" ugnot.", func() {
 		RequestData(cross, "test", true, time.Now().Add(24*time.Hour).Unix())
 	}, "user should not be able to request data without sending the requester reward")
 
@@ -62,13 +62,13 @@ func TestProposeValue(t *testing.T) {
 
 	testing.SetRealm(testing.NewUserRealm(user1))
 	testing.SetOriginSend([]chain.Coin{{Denom: "ugnot", Amount: 0}})
-	urequire.AbortsWithMessage(t, "error: Incorrect bond amount sent. Required: " + strconv.FormatInt(Bond, 10) + " ugnot", func() {
+	urequire.AbortsWithMessage(t, "error: Incorrect bond amount sent. Required: "+strconv.FormatInt(Bond, 10)+" ugnot", func() {
 		ProposeValue(cross, id, 0)
 	}, "user should not be able to propose a value without sending the bond")
 
 	testing.SetRealm(testing.NewUserRealm(user1))
 	testing.SetOriginSend([]chain.Coin{{Denom: "ugnot", Amount: Bond}})
-	setTime(time.Now().Add(25*time.Hour))
+	setTime(time.Now().Add(25 * time.Hour))
 	urequire.AbortsWithMessage(t, "error: Deadline for proposal has passed.", func() {
 		ProposeValue(cross, id, 0)
 	}, "user should not be able to propose a value after the deadline")
@@ -111,13 +111,13 @@ func TestDisputeData(t *testing.T) {
 
 	testing.SetRealm(testing.NewUserRealm(user2))
 	testing.SetOriginSend([]chain.Coin{{Denom: "ugnot", Amount: 0}})
-	urequire.AbortsWithMessage(t, "error: Incorrect bond amount sent. Required: " + strconv.FormatInt(Bond, 10) + " ugnot", func() {
+	urequire.AbortsWithMessage(t, "error: Incorrect bond amount sent. Required: "+strconv.FormatInt(Bond, 10)+" ugnot", func() {
 		DisputeData(cross, id)
 	}, "user should not be able to dispute a value without sending the bond")
 
 	testing.SetRealm(testing.NewUserRealm(user2))
 	testing.SetOriginSend([]chain.Coin{{Denom: "ugnot", Amount: Bond}})
-	setTime(time.Now().Add(time.Duration(ResolutionTime) * time.Second + time.Second))
+	setTime(time.Now().Add(time.Duration(ResolutionTime)*time.Second + time.Second))
 	urequire.AbortsWithMessage(t, "error: Dispute period has ended.", func() {
 		DisputeData(cross, id)
 	}, "user should not be able to dispute a value after the dispute period has ended")
@@ -158,8 +158,8 @@ func TestResolveRequest(t *testing.T) {
 		ResolveRequest(cross, id)
 	}, "user should not be able to resolve a request if the resolution period has not ended yet")
 
-	setTime(now.Add(time.Duration(ResolutionTime) * time.Second + time.Second))
-	CreateGnotCoins(cross, Bond + RequesterReward)
+	setTime(now.Add(time.Duration(ResolutionTime)*time.Second + time.Second))
+	CreateGnotCoins(cross, Bond+RequesterReward)
 	urequire.NotPanics(t, func() {
 		ResolveRequest(cross, id)
 	}, "user should be able to resolve a request")
@@ -174,7 +174,7 @@ func TestRequesterRetreiveFund(t *testing.T) {
 	// setup: create request
 	testing.SetRealm(testing.NewUserRealm(user1))
 	testing.SetOriginSend([]chain.Coin{{Denom: "ugnot", Amount: RequesterReward}})
-	duration := time.Now().Add(24*time.Hour)
+	duration := time.Now().Add(24 * time.Hour)
 	id := RequestData(cross, "test", true, duration.Unix())
 
 	testing.SetRealm(testing.NewUserRealm(user2))

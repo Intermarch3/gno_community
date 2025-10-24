@@ -132,7 +132,7 @@ func RevealVote(_ realm, id string, value int64, salt string) {
 }
 
 // ResolveDispute finalizes a dispute after the reveal period, tallying votes and setting the winning value.
-func ResolveDispute(DEADLINE_TIMESTAMP realm, id string) {
+func ResolveDispute(_ realm, id string) {
 	dispute := getDispute(id)
 	if dispute.IsResolved {
 		panic("error: Dispute is already resolved.")
