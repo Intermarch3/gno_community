@@ -12,19 +12,23 @@ import (
 )
 
 var (
-	admin           = address("g1qdwemgqgqm7s42gy6xcj7f22uhfdzr82st3sy3")
-	ResolutionTime  = 2 * int64(time.Minute.Seconds())
-	RequesterReward = 1 * int64(1_000_000) // in GNOT
-	Bond            = 2 * int64(1_000_000) // in GNOT
-	Requests        = avl.NewTree()
-	Bank            = banker.NewBanker(banker.BankerTypeRealmSend)
+	admin           address
+	resolutionTime  = 2 * int64(time.Minute.Seconds())
+	requesterReward = 1 * int64(1_000_000) // in GNOT
+	bond            = 2 * int64(1_000_000) // in GNOT
+	requests        = avl.NewTree()
+	bank            = banker.NewBanker(banker.BankerTypeRealmSend)
 	idGenerator     seqid.ID
 )
+
+func init() {
+	admin = runtime.CurrentRealm().Address()
+}
 
 // -- PUBLIC FUNCTIONS --
 
 // RequestData allows a user to request data from the oracle.
-// `RequesterReward` value needs to be sent to the contract as a reward
+// `requesterReward` value needs to be sent to the contract as a reward
 // You need to ask a question that can be answered with a single number like a yes/no question (0 or 1) or a specific value (e.g. ETH/USD price).
 func RequestData(_ realm, ancillaryData string, yesNoQuestion bool, deadline int64) string {
 	if ancillaryData == "" {
@@ -35,8 +39,8 @@ func RequestData(_ realm, ancillaryData string, yesNoQuestion bool, deadline int
 	}
 
 	coins := banker.OriginSend()
-	if len(coins) != 1 || coins.AmountOf("ugnot") != RequesterReward {
-		panic("error: Incorrect reward amount sent. Required: " + strconv.FormatInt(RequesterReward, 10) + " ugnot.")
+	if len(coins) != 1 || coins.AmountOf("ugnot") != requesterReward {
+		panic("error: Incorrect reward amount sent. Required: " + strconv.FormatInt(requesterReward, 10) + " ugnot.")
 	}
 
 	id := idGenerator.Next().String()
@@ -50,13 +54,13 @@ func RequestData(_ realm, ancillaryData string, yesNoQuestion bool, deadline int
 		Deadline:      time.Unix(deadline, 0),
 		Creator:       runtime.PreviousRealm().Address(),
 	}
-	Requests.Set(id, request)
+	requests.Set(id, request)
 	chain.Emit("DataRequested", "id", id, "timestamp", request.Timestamp.String(), "ancillaryData", ancillaryData)
 	return id
 }
 
 // ProposeValue allows a user to propose a value for a requested data point.
-// `Bond` value needs to be sent to the contract as a bond.
+// `bond` value needs to be sent to the contract as a bond.
 func ProposeValue(_ realm, id string, proposedValue int64) {
 	request := getRequest(id)
 	if request.State != "Requested" {
@@ -70,21 +74,21 @@ func ProposeValue(_ realm, id string, proposedValue int64) {
 	}
 
 	coins := banker.OriginSend()
-	if len(coins) != 1 || coins.AmountOf("ugnot") != Bond {
-		panic("error: Incorrect bond amount sent. Required: " + strconv.FormatInt(Bond, 10) + " ugnot")
+	if len(coins) != 1 || coins.AmountOf("ugnot") != bond {
+		panic("error: Incorrect bond amount sent. Required: " + strconv.FormatInt(bond, 10) + " ugnot")
 	}
 
 	request.ProposedValue = proposedValue
 	request.Proposer = runtime.PreviousRealm().Address()
-	request.ProposerBond = Bond
-	request.ResolutionTime = time.Now().Add(time.Duration(ResolutionTime) * time.Second)
+	request.ProposerBond = bond
+	request.ResolutionTime = time.Now().Add(time.Duration(resolutionTime) * time.Second)
 	request.State = "Proposed"
-	Requests.Set(id, request)
+	requests.Set(id, request)
 	chain.Emit("ValueProposed", "id", id, "proposedValue", strconv.Itoa(int(proposedValue)), "proposer", request.Proposer.String(), "resolutionTime", request.ResolutionTime.String())
 }
 
 // DisputeData allows a user to dispute a proposed value.
-// `Bond` value needs to be sent to the contract as a bond.
+// `bond` value needs to be sent to the contract as a bond.
 func DisputeData(_ realm, id string) string {
 	request := getRequest(id)
 	if request.Proposer == runtime.PreviousRealm().Address() {
@@ -98,14 +102,14 @@ func DisputeData(_ realm, id string) string {
 	}
 
 	coins := banker.OriginSend()
-	if len(coins) != 1 || coins.AmountOf("ugnot") != Bond {
-		panic("error: Incorrect bond amount sent. Required: " + strconv.FormatInt(Bond, 10) + " ugnot")
+	if len(coins) != 1 || coins.AmountOf("ugnot") != bond {
+		panic("error: Incorrect bond amount sent. Required: " + strconv.FormatInt(bond, 10) + " ugnot")
 	}
 
 	request.Disputer = runtime.PreviousRealm().Address()
-	request.DisputerBond = Bond
+	request.DisputerBond = bond
 	request.State = "Disputed"
-	Requests.Set(id, request)
+	requests.Set(id, request)
 	initiateDispute(id)
 	chain.Emit("DataDisputed", "id", id, "disputer", request.Disputer.String())
 	return "Time: " + time.Now().String()
@@ -128,13 +132,13 @@ func ResolveRequest(_ realm, id string) {
 	}
 	request.State = "Resolved"
 	request.WinningValue = request.ProposedValue
-	Requests.Set(id, request)
+	requests.Set(id, request)
 
 	from := runtime.CurrentRealm().Address()
 	to := request.Proposer
-	totalPayout := request.ProposerBond + RequesterReward
+	totalPayout := request.ProposerBond + requesterReward
 	payout := chain.Coins{chain.Coin{Denom: "ugnot", Amount: totalPayout}}
-	Bank.SendCoins(from, to, payout)
+	bank.SendCoins(from, to, payout)
 
 	chain.Emit("RequestResolved", "id", id, "winningValue", strconv.Itoa(int(request.WinningValue)))
 }
@@ -163,11 +167,11 @@ func RequesterRetreiveFund(_ realm, id string) {
 
 	from := runtime.CurrentRealm().Address()
 	to := request.Creator
-	refund := chain.Coins{chain.Coin{Denom: "ugnot", Amount: RequesterReward}}
-	Bank.SendCoins(from, to, refund)
+	refund := chain.Coins{chain.Coin{Denom: "ugnot", Amount: requesterReward}}
+	bank.SendCoins(from, to, refund)
 
 	request.State = "Expired"
-	Requests.Set(id, request)
+	requests.Set(id, request)
 	chain.Emit("RequestExpired", "id", id)
 }
 
@@ -176,28 +180,28 @@ func RequesterRetreiveFund(_ realm, id string) {
 // SetResolutionDuration sets the duration (in seconds) for the resolution period.
 func SetResolutionDuration(_ realm, duration int64) {
 	if runtime.OriginCaller() == admin {
-		ResolutionTime = duration
-		chain.Emit("ResolutionTimeSet", "duration", strconv.Itoa(int(duration)))
+		resolutionTime = duration
+		chain.Emit("resolutionTimeSet", "duration", strconv.Itoa(int(duration)))
 	} else {
 		panic("error: Only the admin can set the resolution time.")
 	}
 }
 
-// SetRequesterReward sets the reward amount for a successful proposal.
-func SetRequesterReward(_ realm, reward int64) {
+// SetrequesterReward sets the reward amount for a successful proposal.
+func SetrequesterReward(_ realm, reward int64) {
 	if runtime.OriginCaller() == admin {
-		RequesterReward = reward
-		chain.Emit("RequesterRewardSet", "reward", strconv.Itoa(int(reward)))
+		requesterReward = reward
+		chain.Emit("requesterRewardSet", "reward", strconv.Itoa(int(reward)))
 	} else {
 		panic("error: Only the admin can set the requester reward.")
 	}
 }
-
+	
 // SetBond sets the bond amount required for proposals and disputes.
-func SetBond(_ realm, bond int64) {
+func SetBond(_ realm, newBond int64) {
 	if runtime.OriginCaller() == admin {
-		Bond = bond
-		chain.Emit("BondSet", "bond", strconv.Itoa(int(bond)))
+		bond = newBond
+		chain.Emit("bondSet", "bond", strconv.Itoa(int(bond)))
 	} else {
 		panic("error: Only the admin can set the proposer bond.")
 	}
@@ -222,21 +226,21 @@ func GetRequest(_ realm, id string) DataRequest {
 
 // GetBond returns the current bond amount.
 func GetBond(_ realm) int64 {
-	return Bond
+	return bond
 }
 
 // GetResolutionTime returns the current resolution time duration.
 func GetResolutionTime(_ realm) int64 {
-	return ResolutionTime
+	return resolutionTime
 }
 
 // GetRequesterReward returns the current requester reward amount.
 func GetRequesterReward(_ realm) int64 {
-	return RequesterReward
+	return requesterReward
 }
 
-// GetRequestState returns the current state of a specific data request.
-func GetRequestState(_ realm, id string) string {
+// GetRequeststate returns the current state of a specific data request.
+func GetRequeststate(_ realm, id string) string {
 	request := getRequest(id)
 	return request.State
 }
@@ -249,7 +253,7 @@ func GetAdmin(_ realm) address {
 // Utils functions
 
 func getRequest(id string) DataRequest {
-	request, exists := Requests.Get(id)
+	request, exists := requests.Get(id)
 	if !exists {
 		panic("error: Request with this ID does not exist.")
 	}

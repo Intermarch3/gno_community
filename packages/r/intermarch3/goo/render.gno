@@ -25,13 +25,13 @@ func renderHome() string {
 	msg := md.H1("GOO Home")
 	msg += md.Paragraph("Welcome to the first Optimistic Oracle on GnoLand! This project is developed by " + md.Link("@intermarch3", "/r/intermarch3/home"))
 	msg += md.Paragraph("For more information, visit the " + md.Link("Readme", runtime.CurrentRealm().PkgPath()[8:]+"$source") + ".")
-	msg += md.Link("Request Data", ufmt.Sprintf("%s", txlink.NewLink("RequestData").AddArgs("ancillaryData", "YOUR_QUESTION", "yesNoQuestion", "true or false", "deadline", "DEADLINE_TIMESTAMP").SetSend(strconv.Itoa(int(RequesterReward))+"ugnot").URL())) + "\n\n(Note: Requesting data need to pay a reward of " + strconv.Itoa(int(RequesterReward/1_000_000)) + " GNOT to the proposer).\n\n"
-	msg += md.H2("Current Requests :")
+	msg += md.Link("Request Data", ufmt.Sprintf("%s", txlink.NewLink("RequestData").AddArgs("ancillaryData", "YOUR_QUESTION", "yesNoQuestion", "true or false", "deadline", "DEADLINE_TIMESTAMP").SetSend(strconv.Itoa(int(requesterReward))+"ugnot").URL())) + "\n\n(Note: Requesting data need to pay a reward of " + strconv.Itoa(int(requesterReward/1_000_000)) + " GNOT to the proposer).\n\n"
+	msg += md.H2("Current requests :")
 	// List current requests and build table
 	var table []string
 	table = append(table, md.Bold("Question"), md.Bold("Proposed Value"), md.Bold("State"), md.Bold("See more"))
 
-	Requests.Iterate("", "", func(key string, value any) bool {
+	requests.Iterate("", "", func(key string, value any) bool {
 		if value.(DataRequest).State == "Resolved" {
 			return false
 		}
@@ -48,11 +48,11 @@ func renderHome() string {
 	msg += md.HorizontalRule()
 
 	// List last 5 resolved requests and build table
-	msg += md.H2("Last 5 Resolved Requests :")
+	msg += md.H2("Last 5 Resolved requests :")
 	var resolved []string
 	resolved = append(resolved, md.Bold("Question"), md.Bold("Winning Value"), md.Bold("Proposer"), md.Bold("See more"))
 
-	Requests.Iterate("", "", func(key string, value any) bool {
+	requests.Iterate("", "", func(key string, value any) bool {
 		if value.(DataRequest).State != "Resolved" {
 			return false
 		}
@@ -73,7 +73,7 @@ func renderHome() string {
 
 // renderRequestPage renders the page for a specific request
 func renderRequestPage(id string) string {
-	res, exists := Requests.Get(id)
+	res, exists := requests.Get(id)
 	if !exists {
 		return md.H1("error: No request with this ID exists.")
 	}
@@ -94,7 +94,7 @@ func renderRequestPage(id string) string {
 	msg += md.H3("State: "+req.State) + "\n\n"
 	if req.State == "Requested" {
 		msg += md.Paragraph("This request has not been proposed yet.") + "\n\n"
-		msg += md.H3("The reward for the proposer is "+strconv.Itoa(int(RequesterReward/1_000_000))+" GNOT.") + "\n\n"
+		msg += md.H3("The reward for the proposer is "+strconv.Itoa(int(requesterReward/1_000_000))+" GNOT.") + "\n\n"
 		msg += renderAction(req)
 		return msg
 	}
@@ -102,7 +102,7 @@ func renderRequestPage(id string) string {
 	// if the request is resolved, show the winning value and the number of votes
 	if req.State == "Resolved" {
 		msg += md.H3("Winning Value: "+rendervalue(req, req.WinningValue)) + "\n\n"
-		res, exists = Disputes.Get(req.Id)
+		res, exists = disputes.Get(req.Id)
 		if !exists {
 			msg += md.Paragraph("Value Proposed by: "+req.Proposer.String()) + "\n\n"
 			return msg
@@ -127,7 +127,7 @@ func renderRequestPage(id string) string {
 
 	// if the request is disputed, show the dispute details
 	if req.State == "Disputed" {
-		res, exist := Disputes.Get(req.Id)
+		res, exist := disputes.Get(req.Id)
 		dispute := res.(Dispute)
 		if exist {
 			msg += md.H2("Dispute Details:\n\n")
@@ -192,13 +192,13 @@ func renderRequest(req DataRequest) []string {
 // return appropriate action link based on the state of the request
 func renderAction(req DataRequest) string {
 	action := md.H2("Actions:\n\n")
-	dispute, _ := Disputes.Get(req.Id)
+	dispute, _ := disputes.Get(req.Id)
 	if req.State == "Requested" {
 		// tx to propose a value
-		action += md.Link("Propose a value", ufmt.Sprintf("%s", txlink.NewLink("ProposeValue").AddArgs("id", req.Id, "proposedValue", "YOUR_VALUE_HERE").SetSend(strconv.Itoa(int(Bond))+"ugnot").URL())) + "\n\n(Note: Proposing need to bond " + strconv.Itoa(int(Bond/1_000_000)) + " GNOT)"
+		action += md.Link("Propose a value", ufmt.Sprintf("%s", txlink.NewLink("ProposeValue").AddArgs("id", req.Id, "proposedValue", "YOUR_VALUE_HERE").SetSend(strconv.Itoa(int(bond))+"ugnot").URL())) + "\n\n(Note: Proposing need to bond " + strconv.Itoa(int(bond/1_000_000)) + " GNOT)"
 	} else if req.State == "Proposed" {
 		// tx to dispute a value
-		action += md.Link("Dispute value", ufmt.Sprintf("%s", txlink.NewLink("DisputeData").AddArgs("id", req.Id).SetSend(strconv.Itoa(int(Bond))+"ugnot").URL())) + "\n\n(Note: Disputing need to bond " + strconv.Itoa(int(Bond/1_000_000)) + " GNOT)"
+		action += md.Link("Dispute value", ufmt.Sprintf("%s", txlink.NewLink("DisputeData").AddArgs("id", req.Id).SetSend(strconv.Itoa(int(bond))+"ugnot").URL())) + "\n\n(Note: Disputing need to bond " + strconv.Itoa(int(bond/1_000_000)) + " GNOT)"
 	} else if req.State == "Disputed" {
 		if req.ResolutionTime.Before(time.Now()) {
 			// tx to reveal a vote

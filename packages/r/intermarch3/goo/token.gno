@@ -22,6 +22,6 @@ func (t *OOT) burn(from address, amount int64) {
 	t.PrivateLedger.Burn(from, amount)
 }
 
-func (t *OOT) balanceOf(addr address) int64 {
+func (t *OOT) BalanceOf(addr address) int64 {
 	return t.Token.BalanceOf(addr)
 }

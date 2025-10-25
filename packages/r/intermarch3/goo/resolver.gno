@@ -75,9 +75,9 @@ func rewardAndSlachVoters(dispute Dispute, winningValue, totalWeight int64) {
 			if vote.Value == winningValue {
 				// Reward winning voters
 				VoteToken.mint(vote.Voter, 2)
-				reward := Bond * (vote.TokenAmount / totalWeight)
+				reward := bond * (vote.TokenAmount / totalWeight)
 				if reward != 0 {
-					Bank.SendCoins(runtime.CurrentRealm().Address(), vote.Voter, chain.Coins{chain.Coin{Denom: "ugnot", Amount: reward}})
+					bank.SendCoins(runtime.CurrentRealm().Address(), vote.Voter, chain.Coins{chain.Coin{Denom: "ugnot", Amount: reward}})
 				}
 				chain.Emit("VoterRewarded", "voter", vote.Voter.String())
 			} else {
