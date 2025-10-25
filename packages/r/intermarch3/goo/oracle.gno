@@ -196,7 +196,7 @@ func SetrequesterReward(_ realm, reward int64) {
 		panic("error: Only the admin can set the requester reward.")
 	}
 }
-	
+
 // SetBond sets the bond amount required for proposals and disputes.
 func SetBond(_ realm, newBond int64) {
 	if runtime.OriginCaller() == admin {
