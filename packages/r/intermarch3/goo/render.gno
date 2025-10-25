@@ -9,6 +9,7 @@ import (
 	"gno.land/p/moul/realmpath"
 	"gno.land/p/moul/txlink"
 	"gno.land/p/nt/ufmt"
+	"gno.land/p/leon/svgbtn"
 )
 
 const DateFormat = "January 2 2006, 03:04:04 PM"
@@ -23,7 +24,7 @@ func Render(path string) string {
 
 func renderHome() string {
 	msg := md.H1("GOO Home")
-	msg += md.Paragraph("Welcome to the first Optimistic Oracle on GnoLand! This project is developed by " + md.Link("@intermarch3", "/r/intermarch3/home"))
+	msg += md.Paragraph("Welcome to the first Optimistic Oracle on GnoLand! This project is developed by @intermarch3")
 	msg += md.Paragraph("For more information, visit the " + md.Link("Readme", runtime.CurrentRealm().PkgPath()[8:]+"$source") + ".")
 	msg += md.Link("Request Data", ufmt.Sprintf("%s", txlink.NewLink("RequestData").AddArgs("ancillaryData", "YOUR_QUESTION", "yesNoQuestion", "true or false", "deadline", "DEADLINE_TIMESTAMP").SetSend(strconv.Itoa(int(requesterReward))+"ugnot").URL())) + "\n\n(Note: Requesting data need to pay a reward of " + strconv.Itoa(int(requesterReward/1_000_000)) + " GNOT to the proposer).\n\n"
 	msg += md.H2("Current requests :")
@@ -191,28 +192,44 @@ func renderRequest(req DataRequest) []string {
 
 // return appropriate action link based on the state of the request
 func renderAction(req DataRequest) string {
+	link := ""
+	btnName := ""
+	info  := ""
+
 	action := md.H2("Actions:\n\n")
 	dispute, _ := disputes.Get(req.Id)
+
 	if req.State == "Requested" {
 		// tx to propose a value
-		action += md.Link("Propose a value", ufmt.Sprintf("%s", txlink.NewLink("ProposeValue").AddArgs("id", req.Id, "proposedValue", "YOUR_VALUE_HERE").SetSend(strconv.Itoa(int(bond))+"ugnot").URL())) + "\n\n(Note: Proposing need to bond " + strconv.Itoa(int(bond/1_000_000)) + " GNOT)"
+		btnName = "Propose a value"
+		link = txlink.NewLink("ProposeValue").AddArgs("id", req.Id, "proposedValue", "YOUR_VALUE_HERE").SetSend(strconv.Itoa(int(bond))+"ugnot").URL()
+		info = "\n\n(Note: Proposing a value need to bond " + strconv.Itoa(int(bond/1_000_000)) + " GNOT)\n\n"
 	} else if req.State == "Proposed" {
 		// tx to dispute a value
-		action += md.Link("Dispute value", ufmt.Sprintf("%s", txlink.NewLink("DisputeData").AddArgs("id", req.Id).SetSend(strconv.Itoa(int(bond))+"ugnot").URL())) + "\n\n(Note: Disputing need to bond " + strconv.Itoa(int(bond/1_000_000)) + " GNOT)"
+		btnName = "Dispute value"
+		link = txlink.NewLink("DisputeData").AddArgs("id", req.Id).SetSend(strconv.Itoa(int(bond))+"ugnot").URL()
+		info = "\n\n(Note: Disputing a value need to bond " + strconv.Itoa(int(bond/1_000_000)) + " GNOT)\n\n"
 	} else if req.State == "Disputed" {
 		if req.ResolutionTime.Before(time.Now()) {
 			// tx to reveal a vote
-			action += md.Link("Reveal vote", ufmt.Sprintf("%s", txlink.NewLink("RevealVote").AddArgs("id", req.Id, "value", "YOUR_VALUE_HERE", "salt", "YOUR_SALT_HERE").URL())) + "\n\n(Note: You must reveal your vote before the reveal period ends at " + dispute.(Dispute).EndRevealTime.UTC().Format(time.UnixDate) + ")"
+			btnName = "Reveal your vote"
+			link = txlink.NewLink("RevealVote").AddArgs("id", req.Id, "value", "YOUR_VALUE_HERE", "salt", "YOUR_SALT_HERE").URL()
+			info = "\n\n(Note: You must reveal your vote before the reveal period ends at " + dispute.(Dispute).EndRevealTime.UTC().Format(time.UnixDate) + ")"
 		} else {
 			// tx to vote on a dispute
-			action += md.Link("Vote", ufmt.Sprintf("%s", txlink.NewLink("VoteOnDispute").AddArgs("id", req.Id, "hash", "YOUR_HASH_HERE").URL())) + "\n\n(Note: Voting need to hold a Vote Token and requires you to hash your vote with a salt. Use a tool to generate the sha256 hash and keep your salt safe to reveal your vote)"
+			btnName = "Vote on dispute"
+			link = txlink.NewLink("VoteOnDispute").AddArgs("id", req.Id, "hash", "YOUR_HASH_HERE").URL()
+			info = "\n\n(Note: Voting need to hold a Vote Token and requires you to hash your vote with a salt. Use a tool to generate the sha256 hash and keep your salt safe to reveal your vote)"
 		}
 	} else if req.State == "Disputed" && dispute.(Dispute).EndTime.Before(time.Now()) {
 		// tx to resolve a dispute
-		action += md.Link("Resolve dispute", ufmt.Sprintf("%s", txlink.NewLink("ResolveDispute").AddArgs("id", req.Id).URL())) + "\n\n"
+		btnName = "Resolve dispute"
+		link = txlink.NewLink("ResolveDispute").AddArgs("id", req.Id).URL()
 	} else if req.State == "Proposed" && req.ResolutionTime.Before(time.Now()) {
 		// tx to resolve a request
-		action += md.Link("Resolve request", ufmt.Sprintf("%s", txlink.NewLink("ResolveRequest").AddArgs("id", req.Id).URL())) + "\n\n"
+		btnName = "Resolve request"
+		link = txlink.NewLink("ResolveRequest").AddArgs("id", req.Id).URL()
 	}
+	action += svgbtn.Button(300, 40, "blue", "white", btnName, link) + info + "\n\n"
 	return action
 }
