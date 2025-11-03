@@ -190,7 +190,6 @@ func SetVoteTokenPrice(_ realm, price int64) {
 
 // -- view functions --
 
-
 // BalanceOfVoteToken returns the number of vote tokens held by the caller.
 func BalanceOfVoteToken(_ realm) int64 {
 	return VoteToken.BalanceOf(runtime.PreviousRealm().Address())
