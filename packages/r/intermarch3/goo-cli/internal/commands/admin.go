@@ -41,8 +41,10 @@ func NewAdminSetResolutionDurationCmd() *cobra.Command {
 				return fmt.Errorf("invalid duration: %w", err)
 			}
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			utils.PrintWarning("This operation requires admin privileges!")
 
@@ -76,8 +78,10 @@ func NewAdminSetRewardCmd() *cobra.Command {
 				return fmt.Errorf("invalid amount: %w", err)
 			}
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			utils.PrintWarning("This operation requires admin privileges!")
 
@@ -111,8 +115,10 @@ func NewAdminSetBondCmd() *cobra.Command {
 				return fmt.Errorf("invalid amount: %w", err)
 			}
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			utils.PrintWarning("This operation requires admin privileges!")
 
@@ -143,8 +149,10 @@ func NewAdminChangeAdminCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			newAdmin := args[0]
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			utils.PrintWarning("This operation requires admin privileges!")
 			utils.PrintWarning(fmt.Sprintf("You are transferring admin rights to: %s", newAdmin))

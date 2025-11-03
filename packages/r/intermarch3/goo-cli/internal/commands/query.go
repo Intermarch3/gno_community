@@ -30,23 +30,23 @@ func NewQueryResultCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "result <request-id>",
 		Short: "Get the final result of a request",
-		Long:  "Query the winning value for a resolved request",
+		Long:  "Query the winning value for a resolved request (requires signing)",
 		Args:  cobra.ExactArgs(1),
-		Example: `  goo query result req-001`,
+		Example: `  goo query result 0000001`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			requestID := args[0]
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
-			// Query result
-			result, err := executor.QueryFunction("RequestResult", []string{requestID})
-			if err != nil {
+			// Call as transaction since it requires realm context
+			if err := executor.CallFunction("RequestResult", []string{requestID}, ""); err != nil {
 				return err
 			}
 
-			utils.PrintSuccess(fmt.Sprintf("Result for request %s:", requestID))
-			fmt.Println(result)
+			utils.PrintSuccess(fmt.Sprintf("Result query for request %s executed successfully!", requestID))
 
 			return nil
 		},
@@ -63,8 +63,10 @@ func NewQueryParamsCmd() *cobra.Command {
 		Long:  "Query all oracle configuration parameters",
 		Example: `  goo query params`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			utils.PrintSection("Oracle Parameters")
 
@@ -108,8 +110,10 @@ func NewQueryListCmd() *cobra.Command {
 		Example: `  goo query list
   goo query list --state Proposed`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			// Query the Render function
 			result, err := executor.QueryFunction("Render", []string{""})

@@ -69,6 +69,15 @@ func Load() *Config {
 	return &cfg
 }
 
+// LoadWithKeyOverride loads config and overrides the key name if provided
+func LoadWithKeyOverride(keyOverride string) *Config {
+	cfg := Load()
+	if keyOverride != "" {
+		cfg.KeyName = keyOverride
+	}
+	return cfg
+}
+
 // Save writes the configuration to file
 func Save(cfg *Config) error {
 	configPath, err := GetConfigPath()

@@ -32,24 +32,34 @@ func NewDisputeCreateCmd() *cobra.Command {
 		Short: "Create a dispute on a proposed value",
 		Long:  "Challenge a proposed value by creating a dispute. Requires bond to be sent with the transaction.",
 		Args:  cobra.ExactArgs(1),
-		Example: `  goo dispute create req-001`,
+		Example: `  goo dispute create 0000001`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			requestID := args[0]
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
-			utils.PrintWarning("Make sure to check the required bond amount before submitting!")
+			// Query the required bond amount from contract
+			utils.PrintInfo("Querying required bond amount from contract...")
+			bond, err := executor.QueryInt64("GetBond")
+			if err != nil {
+				return fmt.Errorf("failed to query bond amount: %w", err)
+			}
 
-			// Execute transaction
-			if err := executor.CallFunction("DisputeData", []string{requestID}, ""); err != nil {
+			utils.PrintInfo(fmt.Sprintf("Bond required: %d ugnot", bond))
+
+			// Execute transaction with bond
+			sendAmount := fmt.Sprintf("%dugnot", bond)
+			if err := executor.CallFunction("DisputeData", []string{requestID}, sendAmount); err != nil {
 				return err
 			}
 
 			utils.PrintSuccess("Dispute created successfully!")
 			utils.PrintInfo(fmt.Sprintf("Request ID: %s", requestID))
 			utils.PrintInfo("Voting period has started")
-			utils.PrintWarning("Don't forget to add --send <bond>ugnot when executing the actual transaction")
+			utils.PrintInfo(fmt.Sprintf("Bond sent: %d ugnot", bond))
 
 			return nil
 		},
@@ -65,12 +75,14 @@ func NewDisputeGetCmd() *cobra.Command {
 		Short: "Get details of a dispute",
 		Long:  "Retrieve details about a dispute including vote counts and timing",
 		Args:  cobra.ExactArgs(1),
-		Example: `  goo dispute get req-001`,
+		Example: `  goo dispute get 0000001`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			requestID := args[0]
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			// Query the dispute
 			result, err := executor.QueryFunction("GetDispute", []string{requestID})
@@ -95,12 +107,14 @@ func NewDisputeResolveCmd() *cobra.Command {
 		Short: "Resolve a dispute after voting period",
 		Long:  "Finalize a dispute after the reveal period has ended",
 		Args:  cobra.ExactArgs(1),
-		Example: `  goo dispute resolve req-001`,
+		Example: `  goo dispute resolve 0000001`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			requestID := args[0]
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			// Execute transaction
 			if err := executor.CallFunction("ResolveDispute", []string{requestID}, ""); err != nil {

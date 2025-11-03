@@ -34,18 +34,28 @@ func NewVoteBuyTokenCmd() *cobra.Command {
 		Long:  "Purchase the initial vote token required to participate in voting",
 		Example: `  goo vote buy-token`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
-			utils.PrintWarning("Make sure to check the vote token price before submitting!")
+			// Query the vote token price from contract
+			utils.PrintInfo("Querying vote token price from contract...")
+			price, err := executor.QueryInt64("GetVoteTokenPrice")
+			if err != nil {
+				return fmt.Errorf("failed to query vote token price: %w", err)
+			}
+
+			utils.PrintInfo(fmt.Sprintf("Vote token price: %d ugnot", price))
 
 			// Execute transaction
-			if err := executor.CallFunction("BuyInitialVoteToken", []string{}, ""); err != nil {
+			sendAmount := fmt.Sprintf("%dugnot", price)
+			if err := executor.CallFunction("BuyInitialVoteToken", []string{}, sendAmount); err != nil {
 				return err
 			}
 
-			utils.PrintSuccess("Vote token purchase submitted!")
-			utils.PrintWarning("Don't forget to add --send <price>ugnot when executing the actual transaction")
+			utils.PrintSuccess("Vote token purchased successfully!")
+			utils.PrintInfo(fmt.Sprintf("Price paid: %d ugnot", price))
 
 			return nil
 		},
@@ -59,20 +69,20 @@ func NewVoteBalanceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "balance",
 		Short: "Check vote token balance",
-		Long:  "Query your current vote token balance",
+		Long:  "Query your current vote token balance (requires signing)",
 		Example: `  goo vote balance`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
-			// Query balance
-			result, err := executor.QueryFunction("BalanceOfVoteToken", []string{})
-			if err != nil {
+			// Call as transaction since it requires realm context
+			if err := executor.CallFunction("BalanceOfVoteToken", []string{}, ""); err != nil {
 				return err
 			}
 
-			utils.PrintSuccess("Vote token balance:")
-			fmt.Println(result)
+			utils.PrintSuccess("Balance query executed successfully!")
 
 			return nil
 		},
@@ -90,14 +100,16 @@ func NewVoteCommitCmd() *cobra.Command {
 		Short: "Commit a vote on a dispute",
 		Long:  "Submit a hashed vote during the voting period. The hash will be revealed later.",
 		Args:  cobra.ExactArgs(2),
-		Example: `  goo vote commit req-001 3500
-  goo vote commit req-001 3500 --salt my-random-salt`,
+		Example: `  goo vote commit 0000001 3500
+  goo vote commit 0000001 3500 --salt my-random-salt`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			requestID := args[0]
 			value := args[1]
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			// Auto-generate salt if not provided
 			if salt == "" {
@@ -141,12 +153,14 @@ func NewVoteRevealCmd() *cobra.Command {
 		Short: "Reveal a committed vote",
 		Long:  "Reveal your vote during the reveal period using locally stored vote data",
 		Args:  cobra.ExactArgs(1),
-		Example: `  goo vote reveal req-001`,
+		Example: `  goo vote reveal 0000001`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			requestID := args[0]
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			// Load vote data from local storage
 			value, salt, err := gnokey.LoadVoteLocally(requestID)

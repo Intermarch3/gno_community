@@ -31,28 +31,37 @@ func NewProposeValueCmd() *cobra.Command {
 		Short: "Propose a value for a request",
 		Long:  "Propose a value for a data request. Requires bond to be sent with the transaction.",
 		Args:  cobra.ExactArgs(2),
-		Example: `  goo propose value req-001 3500`,
+		Example: `  goo propose value 0000001 3500`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			requestID := args[0]
 			value := args[1]
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
-			// Note: Bond amount should be fetched from oracle params
-			// For now, we'll just mention it in the output
-			utils.PrintWarning("Make sure to check the required bond amount before submitting!")
+			// Query the required bond amount from contract
+			utils.PrintInfo("Querying required bond amount from contract...")
+			bond, err := executor.QueryInt64("GetBond")
+			if err != nil {
+				return fmt.Errorf("failed to query bond amount: %w", err)
+			}
 
-			// Execute transaction
+			utils.PrintInfo(fmt.Sprintf("Bond required: %d ugnot", bond))
+
+			// Execute transaction with bond
 			funcArgs := []string{requestID, value}
-			if err := executor.CallFunction("ProposeValue", funcArgs, ""); err != nil {
+			sendAmount := fmt.Sprintf("%dugnot", bond)
+
+			if err := executor.CallFunction("ProposeValue", funcArgs, sendAmount); err != nil {
 				return err
 			}
 
 			utils.PrintSuccess("Value proposed successfully!")
 			utils.PrintInfo(fmt.Sprintf("Request ID: %s", requestID))
 			utils.PrintInfo(fmt.Sprintf("Proposed Value: %s", value))
-			utils.PrintWarning("Don't forget to add --send <bond>ugnot when executing the actual transaction")
+			utils.PrintInfo(fmt.Sprintf("Bond sent: %d ugnot", bond))
 
 			return nil
 		},
@@ -68,12 +77,14 @@ func NewProposeResolveCmd() *cobra.Command {
 		Short: "Resolve a non-disputed request",
 		Long:  "Finalize a request that has not been disputed after the resolution time",
 		Args:  cobra.ExactArgs(1),
-		Example: `  goo propose resolve req-001`,
+		Example: `  goo propose resolve 0000001`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			requestID := args[0]
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			// Execute transaction
 			if err := executor.CallFunction("ResolveRequest", []string{requestID}, ""); err != nil {

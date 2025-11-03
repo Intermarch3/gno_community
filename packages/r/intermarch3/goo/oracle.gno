@@ -220,33 +220,33 @@ func ChangeAdmin(_ realm, newAdmin address) {
 // -- VIEW FUNCTIONS --
 
 // GetRequest returns the details of a specific data request.
-func GetRequest(_ realm, id string) DataRequest {
+func GetRequest(id string) DataRequest {
 	return getRequest(id)
 }
 
 // GetBond returns the current bond amount.
-func GetBond(_ realm) int64 {
+func GetBond() int64 {
 	return bond
 }
 
 // GetResolutionTime returns the current resolution time duration.
-func GetResolutionTime(_ realm) int64 {
+func GetResolutionTime() int64 {
 	return resolutionTime
 }
 
 // GetRequesterReward returns the current requester reward amount.
-func GetRequesterReward(_ realm) int64 {
+func GetRequesterReward() int64 {
 	return requesterReward
 }
 
 // GetRequeststate returns the current state of a specific data request.
-func GetRequeststate(_ realm, id string) string {
+func GetRequeststate(id string) string {
 	request := getRequest(id)
 	return request.State
 }
 
 // GetAdmin returns the current admin address.
-func GetAdmin(_ realm) address {
+func GetAdmin() address {
 	return admin
 }
 

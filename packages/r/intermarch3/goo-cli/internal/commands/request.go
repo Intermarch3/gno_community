@@ -50,13 +50,25 @@ func NewRequestCreateCmd() *cobra.Command {
     --deadline "2025-10-28T12:00:00Z" \
     --reward 1000000`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			// Parse deadline
 			deadlineTime, err := utils.ParseDeadline(deadline)
 			if err != nil {
 				return err
+			}
+
+			// If reward is 0, query the default requester reward from contract
+			if reward == 0 {
+				utils.PrintInfo("Querying default requester reward from contract...")
+				reward, err = executor.QueryInt64("GetRequesterReward")
+				if err != nil {
+					return fmt.Errorf("failed to query requester reward: %w", err)
+				}
+				utils.PrintInfo(fmt.Sprintf("Default reward: %d ugnot", reward))
 			}
 
 			// Prepare function arguments
@@ -81,7 +93,7 @@ func NewRequestCreateCmd() *cobra.Command {
 				utils.PrintInfo("Type: numeric")
 			}
 			utils.PrintInfo(fmt.Sprintf("Deadline: %s", utils.FormatTimeRFC3339(deadlineTime)))
-			utils.PrintInfo(fmt.Sprintf("Reward: %s", utils.FormatUgnot(reward)))
+			utils.PrintInfo(fmt.Sprintf("Reward sent: %d ugnot", reward))
 
 			return nil
 		},
@@ -90,7 +102,7 @@ func NewRequestCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&question, "question", "", "Question or ancillary data for the request")
 	cmd.Flags().BoolVar(&yesno, "yesno", false, "Set to true for yes/no questions (default: numeric)")
 	cmd.Flags().StringVar(&deadline, "deadline", "", "Deadline in RFC3339 format (e.g., 2025-10-28T12:00:00Z)")
-	cmd.Flags().Int64Var(&reward, "reward", 1000000, "Reward amount in ugnot")
+	cmd.Flags().Int64Var(&reward, "reward", 0, "Reward amount in ugnot (default: query from contract)")
 
 	cmd.MarkFlagRequired("question")
 	cmd.MarkFlagRequired("deadline")
@@ -104,12 +116,14 @@ func NewRequestGetCmd() *cobra.Command {
 		Use:   "get <request-id>",
 		Short: "Get details of a specific request",
 		Args:  cobra.ExactArgs(1),
-		Example: `  goo request get req-001`,
+		Example: `  goo request get 0000001`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			requestID := args[0]
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			// Query the request
 			result, err := executor.QueryFunction("GetRequest", []string{requestID})
@@ -134,12 +148,14 @@ func NewRequestRetrieveFundCmd() *cobra.Command {
 		Short: "Retrieve reward from unfulfilled request",
 		Long:  "Retrieve the reward from a request that was not fulfilled before the deadline",
 		Args:  cobra.ExactArgs(1),
-		Example: `  goo request retrieve-fund req-001`,
+		Example: `  goo request retrieve-fund 0000001`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			requestID := args[0]
 
-			cfg := config.Load()
-			executor := gnokey.NewExecutor(cfg)
+			keyOverride, _ := cmd.Flags().GetString("key")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			cfg := config.LoadWithKeyOverride(keyOverride)
+			executor := gnokey.NewExecutor(cfg, verbose)
 
 			// Execute transaction
 			if err := executor.CallFunction("RequesterRetreiveFund", []string{requestID}, ""); err != nil {

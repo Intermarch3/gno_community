@@ -55,11 +55,6 @@ func BuyInitialVoteToken(_ realm) {
 	chain.Emit("VoteTokenPurchased", "voter", caller.String())
 }
 
-// BalanceOfVoteToken returns the number of vote tokens held by the caller.
-func BalanceOfVoteToken(_ realm) int64 {
-	return VoteToken.BalanceOf(runtime.PreviousRealm().Address())
-}
-
 // VoteOnDispute allows a user to commit a vote during a dispute.
 func VoteOnDispute(_ realm, id string, hash string) {
 	dispute := getDispute(id)
@@ -195,41 +190,47 @@ func SetVoteTokenPrice(_ realm, price int64) {
 
 // -- view functions --
 
+
+// BalanceOfVoteToken returns the number of vote tokens held by the caller.
+func BalanceOfVoteToken(_ realm) int64 {
+	return VoteToken.BalanceOf(runtime.PreviousRealm().Address())
+}
+
 // GetDispute returns the details of a specific dispute.
-func GetDispute(_ realm, id string) Dispute {
+func GetDispute(id string) Dispute {
 	return getDispute(id)
 }
 
 // GetDisputeDuration returns the current dispute duration.
-func GetDisputeDuration(_ realm) int64 {
+func GetDisputeDuration() int64 {
 	return disputeDuration
 }
 
 // GetVoteTokenPrice returns the current vote price.
-func GetVoteTokenPrice(_ realm) int64 {
+func GetVoteTokenPrice() int64 {
 	return voteTokenPrice
 }
 
 // GetDisputeEndTime returns the end time of the voting period for a specific dispute.
-func GetDisputeEndTime(_ realm, id string) time.Time {
+func GetDisputeEndTime(id string) time.Time {
 	dispute := getDispute(id)
 	return dispute.EndTime
 }
 
 // GetDisputeVotesAmount returns the total number of votes cast in a dispute.
-func GetDisputeVotesAmount(_ realm, id string) int64 {
+func GetDisputeVotesAmount(id string) int64 {
 	dispute := getDispute(id)
 	return int64(len(dispute.Votes))
 }
 
 // GetRevealEndTime returns the end time of the reveal period for a specific dispute.
-func GetRevealEndTime(_ realm, id string) time.Time {
+func GetRevealEndTime(id string) time.Time {
 	dispute := getDispute(id)
 	return dispute.EndRevealTime
 }
 
 // GetRevealDuration returns the current reveal duration.
-func GetRevealDuration(_ realm) int64 {
+func GetRevealDuration() int64 {
 	return revealDuration
 }
 
