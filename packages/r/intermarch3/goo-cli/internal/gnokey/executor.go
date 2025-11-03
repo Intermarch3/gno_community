@@ -1,6 +1,7 @@
 package gnokey
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -68,14 +69,41 @@ func (e *TxExecutor) CallFunction(funcName string, args []string, sendCoins stri
 	printCommand("gnokey", cmdArgs)
 	fmt.Println()
 
-	// Execute the command with inherited stdin/stdout/stderr for interactive password input
+	// Execute the command with inherited stdin for interactive password input
 	cmd := exec.Command("gnokey", cmdArgs...)
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+
+	// Handle stdout and stderr based on verbose mode
+	var stdoutBuf, stderrBuf bytes.Buffer
+	if e.Verbose {
+		// In verbose mode, show full output
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	} else {
+		// In non-verbose mode, capture both stdout and stderr
+		cmd.Stdout = &stdoutBuf
+		cmd.Stderr = &stderrBuf
+		// Print password prompt since stderr is not shown
+		fmt.Print("Password: ")
+	}
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("transaction failed: %w", err)
+		// Print newline after password input in non-verbose mode
+		if !e.Verbose {
+			fmt.Println()
+		}
+		// If error occurred in non-verbose mode, parse the captured stderr
+		if !e.Verbose && stderrBuf.Len() > 0 {
+			// Create error from captured stderr and parse it for friendly message
+			return utils.ParseContractError(fmt.Errorf("%s", stderrBuf.String()))
+		}
+		// In verbose mode or if no stderr captured, return the error as-is
+		return err
+	}
+
+	// Print newline after password input in non-verbose mode on success
+	if !e.Verbose {
+		fmt.Println()
 	}
 
 	return nil
@@ -115,7 +143,7 @@ func (e *TxExecutor) QueryFunction(funcName string, args []string) (string, erro
 	}
 
 	if err != nil {
-		return "", fmt.Errorf("query failed: %w", err)
+		return "", utils.ParseContractError(fmt.Errorf("query failed: %w", err))
 	}
 
 	return string(output), nil
@@ -171,7 +199,7 @@ func (e *TxExecutor) QueryInt64(funcName string) (int64, error) {
 			}
 		}
 	}
-	return 0, fmt.Errorf("failed to parse int64 from query result: %s", result)
+	return 0, utils.ParseContractError(fmt.Errorf("failed to parse int64 from query result: %s", result))
 }
 
 // VoteData represents stored vote information
