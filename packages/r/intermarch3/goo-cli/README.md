@@ -4,12 +4,15 @@ Command-line interface for the Gno Optimistic Oracle (GOO).
 
 ## Features
 
-- **Request Management**: Create data requests with custom parameters
-- **Value Proposals**: Propose values for pending requests
-- **Dispute System**: Challenge proposed values and participate in voting
-- **Voting Mechanism**: Commit-reveal voting with local vote storage
+- **Request Management**: Create data requests with custom parameters (auto-queries default reward)
+- **Value Proposals**: Propose values for pending requests (auto-queries and sends required bond)
+- **Dispute System**: Challenge proposed values and participate in voting (auto-queries and sends required bond)
+- **Voting Mechanism**: Commit-reveal voting with local vote storage (auto-queries vote token price)
 - **Query Operations**: Read oracle state and parameters
 - **Admin Functions**: Manage oracle configuration (requires admin privileges)
+- **Verbose Mode**: Use `--verbose` or `-v` flag to see detailed gnokey output
+- **Key Override**: Use `--key` flag to override the configured key name for any command
+- **User-Friendly Errors**: Automatic parsing of contract errors into friendly messages
 
 ## Installation
 
@@ -51,15 +54,32 @@ goo config show
 
 ## Usage
 
+### Global Flags
+
+All commands support these global flags:
+- `--key <keyname>`: Override the key name from config
+- `--verbose` or `-v`: Enable verbose output (shows full gnokey commands and output)
+
 ### Request Commands
 
 **Create a new request:**
 ```bash
+# Numeric question (reward auto-queried if not specified)
 goo request create \
   --question "What is the ETH/USD price on 2025-10-27 12:00 UTC?" \
-  --type numeric \
+  --deadline "2025-10-28T12:00:00Z"
+
+# Yes/No question
+goo request create \
+  --question "Did BTC reach $100,000 by 2025-10-27?" \
+  --yesno \
+  --deadline "2025-10-28T12:00:00Z"
+
+# With custom reward
+goo request create \
+  --question "ETH/USD price?" \
   --deadline "2025-10-28T12:00:00Z" \
-  --reward 1000000
+  --reward 2000000
 ```
 
 **Get request details:**
@@ -176,7 +196,7 @@ goo admin change-admin g1abcdef...
 
 2. **Create a request:**
    ```bash
-   goo request create --question "ETH/USD?" --type numeric --deadline "2025-10-28T12:00:00Z"
+   goo request create --question "ETH/USD?" --deadline "2025-10-28T12:00:00Z"
    ```
 
 3. **Propose a value:**
@@ -231,6 +251,43 @@ This file contains:
 
 This data is automatically loaded when you reveal your vote.
 
+## Advanced Features
+
+### Verbose Mode
+
+By default, the CLI shows clean, minimal output with user-friendly error messages. Use `--verbose` or `-v` to see:
+- Full gnokey commands being executed
+- Complete transaction output including TX hash and gas info
+- Detailed error messages and stack traces
+
+Example:
+```bash
+# Default mode (clean output)
+goo propose value 0000001 3500
+
+# Verbose mode (detailed output)
+goo propose value 0000001 3500 --verbose
+```
+
+### Key Override
+
+Override the configured key name for a single command without modifying your config:
+
+```bash
+# Use a different key for this transaction
+goo propose value 0000001 3500 --key myotherkey
+```
+
+### Error Handling
+
+The CLI automatically parses contract errors and displays friendly messages:
+- ❌ Request not found - invalid request ID
+- ❌ Proposal deadline has passed
+- ❌ You need to buy a vote token first ('goo vote buy-token')
+- And 30+ more error patterns
+
+Unknown errors display the full error message for debugging.
+
 ## Project Structure
 
 ```
@@ -246,8 +303,13 @@ goo-cli/
 │   │   ├── admin.go     # Admin commands
 │   │   └── config.go    # Config commands
 │   ├── gnokey/          # gnokey execution wrapper
+│   │   └── executor.go  # Transaction and query execution
 │   ├── config/          # Configuration management
+│   │   └── config.go    # Config loading and key override
 │   └── utils/           # Utility functions
+│       ├── errors.go    # Error parsing and friendly messages
+│       ├── format.go    # Formatting utilities
+│       └── print.go     # Output helpers
 └── pkg/types/           # Type definitions
 ```
 
