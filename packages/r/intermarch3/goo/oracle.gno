@@ -224,6 +224,31 @@ func GetRequest(id string) DataRequest {
 	return getRequest(id)
 }
 
+// GetRequestsIds returns the IDs of all requests.
+func GetRequestsIds() []string {
+	var ids []string
+	requests.Iterate("", "", func(key string, value any) bool {
+		ids = append(ids, key)
+		return false
+	})
+	return ids
+}
+
+// GetOpenRequests returns the IDs of all open requests.
+func GetRequestsIdsWithState(state string) []string {
+	if state != "Requested" && state != "Proposed" && state != "Disputed" && state != "Resolved" {
+		panic("error: Invalid state.")
+	}
+	var ids []string
+	requests.Iterate("", "", func(key string, value any) bool {
+		if value.(DataRequest).State == state {
+			ids = append(ids, key)
+		}
+		return false
+	})
+	return ids
+}
+
 // GetBond returns the current bond amount.
 func GetBond() int64 {
 	return bond

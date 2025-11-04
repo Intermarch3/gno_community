@@ -131,8 +131,64 @@ func NewRequestGetCmd() *cobra.Command {
 				return err
 			}
 
-			utils.PrintSuccess(fmt.Sprintf("Request details for: %s", requestID))
-			fmt.Println(result)
+			// Parse the request data
+			req, err := utils.ParseDataRequestFromQuery(result)
+			if err != nil {
+				// If parsing fails, show raw output in verbose mode
+				if verbose {
+					utils.PrintError(fmt.Sprintf("Failed to parse request: %v", err))
+					fmt.Println(result)
+				}
+				return fmt.Errorf("failed to parse request data: %w", err)
+			}
+
+			// Display request information in a clean format
+			utils.PrintSection(fmt.Sprintf("Request %s", req.ID))
+			fmt.Println()
+
+			// Basic Information
+			fmt.Println("Basic Information:")
+			utils.PrintKeyValue("  Request ID", req.ID)
+			utils.PrintKeyValue("  State", req.State)
+			utils.PrintKeyValue("  Creator", req.Creator)
+			utils.PrintKeyValue("  Question", req.AncillaryData)
+			if req.YesNoQuestion {
+				utils.PrintKeyValue("  Type", "Yes/No Question")
+			} else {
+				utils.PrintKeyValue("  Type", "Numeric")
+			}
+			// Note: Timestamps/Deadlines are stored as time.Time and can't be parsed from query output
+			// To display them, the contract would need getter functions that return Unix timestamps
+
+			// Proposal Information
+			fmt.Println()
+			fmt.Println("Proposal Information:")
+			if req.Proposer != "" {
+				utils.PrintKeyValue("  Proposer", req.Proposer)
+				utils.PrintKeyValue("  Proposed Value", req.ProposedValue)
+				utils.PrintKeyValue("  Proposer Bond", fmt.Sprintf("%d ugnot", req.ProposerBond))
+			} else {
+				utils.PrintKeyValue("  Status", "No proposal yet")
+			}
+
+			// Dispute Information
+			fmt.Println()
+			fmt.Println("Dispute Information:")
+			if req.Disputer != "" {
+				utils.PrintKeyValue("  Disputer", req.Disputer)
+				utils.PrintKeyValue("  Disputer Bond", fmt.Sprintf("%d ugnot", req.DisputerBond))
+			} else {
+				utils.PrintKeyValue("  Status", "Not disputed")
+			}
+
+			// Resolution Information
+			if req.State == "Resolved" {
+				fmt.Println()
+				fmt.Println("Resolution:")
+				utils.PrintKeyValue("  Winning Value", req.WinningValue)
+			}
+
+			fmt.Println()
 
 			return nil
 		},

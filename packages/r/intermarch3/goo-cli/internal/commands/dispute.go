@@ -90,8 +90,39 @@ func NewDisputeGetCmd() *cobra.Command {
 				return err
 			}
 
-			utils.PrintSuccess(fmt.Sprintf("Dispute details for: %s", requestID))
-			fmt.Println(result)
+			// Parse the dispute data
+			dispute, err := utils.ParseDisputeFromQuery(result)
+			if err != nil {
+				// If parsing fails, show raw output in verbose mode
+				if verbose {
+					utils.PrintError(fmt.Sprintf("Failed to parse dispute: %v", err))
+					fmt.Println(result)
+				}
+				return fmt.Errorf("failed to parse dispute data: %w", err)
+			}
+
+			// Display dispute information in a clean format
+			utils.PrintSection(fmt.Sprintf("Dispute for Request %s", dispute.RequestID))
+			fmt.Println()
+
+			// Status Information
+			fmt.Println("Status:")
+			utils.PrintKeyValue("  Request ID", dispute.RequestID)
+			if dispute.IsResolved {
+				utils.PrintKeyValue("  Status", "Resolved")
+				utils.PrintKeyValue("  Winning Value", dispute.WinningValue)
+			} else {
+				utils.PrintKeyValue("  Status", "Active")
+			}
+
+			// Voting Information
+			fmt.Println()
+			fmt.Println("Voting:")
+			utils.PrintKeyValue("  Total Votes", dispute.Votes)
+			utils.PrintKeyValue("  Revealed Votes", dispute.NbResolvedVotes)
+			unrevealed := int64(dispute.Votes) - dispute.NbResolvedVotes
+			utils.PrintKeyValue("  Unrevealed Votes", unrevealed)
+			fmt.Println()
 
 			return nil
 		},

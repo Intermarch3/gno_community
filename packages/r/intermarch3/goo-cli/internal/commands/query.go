@@ -99,14 +99,14 @@ func NewQueryParamsCmd() *cobra.Command {
 	return cmd
 }
 
-// NewQueryListCmd lists requests (limited functionality without indexer)
+// NewQueryListCmd lists requests with their states
 func NewQueryListCmd() *cobra.Command {
-	var state string
+	var stateFilter string
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List requests (limited without indexer)",
-		Long:  "Attempt to list requests by parsing Render() output. Note: This is limited without a proper indexer.",
+		Short: "List all requests with their states",
+		Long:  "Query and display all requests with their current states",
 		Example: `  goo query list
   goo query list --state Proposed`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -115,26 +115,91 @@ func NewQueryListCmd() *cobra.Command {
 			cfg := config.LoadWithKeyOverride(keyOverride)
 			executor := gnokey.NewExecutor(cfg, verbose)
 
-			// Query the Render function
-			result, err := executor.QueryFunction("Render", []string{""})
+			// Validate state filter if provided
+			if stateFilter != "" {
+				validStates := []string{"Requested", "Proposed", "Disputed", "Resolved"}
+				isValid := false
+				for _, valid := range validStates {
+					if stateFilter == valid {
+						isValid = true
+						break
+					}
+				}
+				if !isValid {
+					return fmt.Errorf("invalid state '%s'. Valid states are: Requested, Proposed, Disputed, Resolved", stateFilter)
+				}
+			}
+
+			// Query request IDs based on filter
+			var queryFunc string
+			var queryArgs []string
+			if stateFilter != "" {
+				queryFunc = "GetRequestsIdsWithState"
+				queryArgs = []string{stateFilter}
+			} else {
+				queryFunc = "GetRequestsIds"
+				queryArgs = []string{}
+			}
+
+			result, err := executor.QueryFunction(queryFunc, queryArgs)
 			if err != nil {
 				return err
 			}
 
-			utils.PrintSuccess("Oracle State:")
-			if state != "" {
-				utils.PrintInfo(fmt.Sprintf("Filtering by state: %s", state))
+			// Parse the request IDs from the query result
+			requestIDs, err := utils.ParseStringArrayFromQuery(result)
+			if err != nil {
+				return fmt.Errorf("failed to parse request IDs: %w", err)
 			}
-			fmt.Println(result)
 
-			utils.PrintWarning("Note: Full list functionality requires an indexer")
-			utils.PrintInfo("Consider using gnokey query to call Render() directly for formatted output")
+			if len(requestIDs) == 0 {
+				if stateFilter != "" {
+					utils.PrintInfo(fmt.Sprintf("No requests found with state: %s", stateFilter))
+				} else {
+					utils.PrintInfo("No requests found")
+				}
+				return nil
+			}
+
+			// Print header
+			if stateFilter != "" {
+				utils.PrintSuccess(fmt.Sprintf("Requests (filtered by state: %s)", stateFilter))
+			} else {
+				utils.PrintSuccess("All Requests")
+			}
+			fmt.Println()
+			fmt.Printf("%-12s %-50s %-15s\n", "Request ID", "Question", "State")
+			fmt.Println(fmt.Sprintf("%s %s %s", "------------", "--------------------------------------------------", "---------------"))
+
+			// Query and display details for each request
+			for _, id := range requestIDs {
+				// Get full request to extract question
+				requestResult, err := executor.QueryFunction("GetRequest", []string{id})
+				if err != nil {
+					fmt.Printf("%-12s %-50s %-15s\n", id, "Error", "Error")
+					continue
+				}
+
+				// Parse request to get question and state
+				req, err := utils.ParseDataRequestFromQuery(requestResult)
+				if err != nil {
+					fmt.Printf("%-12s %-50s %-15s\n", id, "Parse Error", "Error")
+					continue
+				}
+
+				// Truncate question if too long
+				question := utils.TruncateString(req.AncillaryData, 50)
+				fmt.Printf("%-12s %-50s %-15s\n", id, question, req.State)
+			}
+
+			fmt.Println()
+			utils.PrintInfo(fmt.Sprintf("Total: %d request(s)", len(requestIDs)))
 
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&state, "state", "", "Filter by state: Requested, Proposed, Disputed, Resolved")
+	cmd.Flags().StringVar(&stateFilter, "state", "", "Filter by state: Requested, Proposed, Disputed, Resolved")
 
 	return cmd
 }
