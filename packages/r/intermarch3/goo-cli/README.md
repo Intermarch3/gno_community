@@ -6,6 +6,7 @@ Command-line interface for the Gno Optimistic Oracle (GOO).
 
 - **Request Management**: Create data requests with custom parameters (auto-queries default reward)
 - **Value Proposals**: Propose values for pending requests (auto-queries and sends required bond)
+- **AI-Powered Proposals**: Automatically research and propose values using Google Gemini AI with web search
 - **Dispute System**: Challenge proposed values and participate in voting (auto-queries and sends required bond)
 - **Voting Mechanism**: Commit-reveal voting with local vote storage (auto-queries vote token price)
 - **Query Operations**: Read oracle state and parameters
@@ -44,6 +45,7 @@ chain_id: test4
 remote: https://rpc.test4.gno.land:443
 gas_fee: 1000000ugnot
 gas_wanted: 2000000
+google_api_key: ""  # Optional: for AI-powered proposals
 ```
 
 View current configuration:
@@ -94,9 +96,14 @@ goo request retrieve-fund 0000001
 
 ### Propose Commands
 
-**Propose a value:**
+**Propose a value (manual):**
 ```bash
 goo propose value 0000001 3500
+```
+
+**Propose a value (AI-powered with web search):**
+```bash
+goo propose value 0000001 --search
 ```
 
 **Resolve a non-disputed request:**
@@ -199,9 +206,13 @@ goo admin change-admin g1abcdef...
    goo request create --question "ETH/USD?" --deadline "2025-10-28T12:00:00Z"
    ```
 
-3. **Propose a value:**
+3. **Propose a value (manual or AI-powered):**
    ```bash
+   # Manual
    goo propose value 0000001 3500
+   
+   # Or let AI research it
+   goo propose value 0000001 --search
    ```
 
 4. **Someone disputes (if they disagree):**

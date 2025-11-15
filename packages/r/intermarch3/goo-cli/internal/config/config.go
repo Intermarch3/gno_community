@@ -11,12 +11,13 @@ import (
 
 // Config holds the CLI configuration
 type Config struct {
-	KeyName    string `yaml:"keyname" mapstructure:"keyname"`
-	RealmPath  string `yaml:"realm_path" mapstructure:"realm_path"`
-	ChainID    string `yaml:"chain_id" mapstructure:"chain_id"`
-	Remote     string `yaml:"remote" mapstructure:"remote"`
-	GasFee     string `yaml:"gas_fee" mapstructure:"gas_fee"`
-	GasWanted  int64  `yaml:"gas_wanted" mapstructure:"gas_wanted"`
+	KeyName      string `yaml:"keyname" mapstructure:"keyname"`
+	RealmPath    string `yaml:"realm_path" mapstructure:"realm_path"`
+	ChainID      string `yaml:"chain_id" mapstructure:"chain_id"`
+	Remote       string `yaml:"remote" mapstructure:"remote"`
+	GasFee       string `yaml:"gas_fee" mapstructure:"gas_fee"`
+	GasWanted    int64  `yaml:"gas_wanted" mapstructure:"gas_wanted"`
+	GoogleAPIKey string `yaml:"google_api_key" mapstructure:"google_api_key"`
 }
 
 // DefaultConfig returns a config with default values
@@ -24,10 +25,10 @@ func DefaultConfig() *Config {
 	return &Config{
 		KeyName:    "mykey",
 		RealmPath:  "gno.land/r/intermarch3/goo",
-		ChainID:    "test4",
-		Remote:     "https://rpc.test4.gno.land:443",
+		ChainID:    "dev",
+		Remote:     "tcp://127.0.0.1:26657",
 		GasFee:     "1000000ugnot",
-		GasWanted:  2000000,
+		GasWanted:  20000000,
 	}
 }
 
@@ -125,13 +126,26 @@ func InitConfig() error {
 
 	fmt.Printf("✓ Config file created at %s\n", configPath)
 	fmt.Println("\nDefault configuration:")
-	fmt.Printf("  Key Name:    %s\n", cfg.KeyName)
-	fmt.Printf("  Realm Path:  %s\n", cfg.RealmPath)
-	fmt.Printf("  Chain ID:    %s\n", cfg.ChainID)
-	fmt.Printf("  Remote:      %s\n", cfg.Remote)
-	fmt.Printf("  Gas Fee:     %s\n", cfg.GasFee)
-	fmt.Printf("  Gas Wanted:  %d\n", cfg.GasWanted)
+	fmt.Printf("  Key Name:      %s\n", cfg.KeyName)
+	fmt.Printf("  Realm Path:    %s\n", cfg.RealmPath)
+	fmt.Printf("  Chain ID:      %s\n", cfg.ChainID)
+	fmt.Printf("  Remote:        %s\n", cfg.Remote)
+	fmt.Printf("  Gas Fee:       %s\n", cfg.GasFee)
+	fmt.Printf("  Gas Wanted:    %d\n", cfg.GasWanted)
+	if cfg.GoogleAPIKey != "" {
+		fmt.Printf("  Google API Key: %s\n", cfg.GoogleAPIKey[:min(8, len(cfg.GoogleAPIKey))]+"...")
+	} else {
+		fmt.Printf("  Google API Key: (not configured)\n")
+	}
 	fmt.Println("\nEdit this file to customize your settings.")
 
 	return nil
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
