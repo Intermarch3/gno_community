@@ -25,7 +25,7 @@ func initiateDispute(id string) {
 	if _, exists := disputes.Get(id); exists {
 		panic("error: Dispute for this request already exists.")
 	}
-	dispute := Dispute{
+	dispute := &Dispute{
 		RequestId:     id,
 		Votes:         []Vote{},
 		Voters:        avl.NewTree(),
@@ -59,8 +59,7 @@ func BuyInitialVoteToken(_ realm) {
 // VoteOnDispute allows a user to commit a vote during a dispute.
 func VoteOnDispute(_ realm, id string, hash string) {
 	dispute := getDispute(id)
-	res, _ := requests.Get(id)
-	request := res.(DataRequest)
+	request := getRequest(id)
 
 	if request.Proposer == runtime.PreviousRealm().Address() || request.Disputer == runtime.PreviousRealm().Address() {
 		panic("error: Proposer and Disputer cannot vote in this dispute.")
@@ -94,7 +93,6 @@ func VoteOnDispute(_ realm, id string, hash string) {
 
 	dispute.Votes = append(dispute.Votes, vote)
 	dispute.Voters.Set(string(vote.Voter), Voter{HasVoted: true, VoteIndex: int64(len(dispute.Votes) - 1)})
-	disputes.Set(id, dispute)
 	chain.Emit("VoteSubmitted", "id", id, "voter", vote.Voter.String())
 }
 
@@ -135,7 +133,6 @@ func RevealVote(_ realm, id string, value int64, salt string) {
 	vote.Revealed = true
 	dispute.NbResolvedVotes += 1
 	dispute.Votes[voter.(Voter).VoteIndex] = vote
-	disputes.Set(id, dispute)
 	chain.Emit("VoteRevealed", "id", id, "voter", vote.Voter.String(), "value", strconv.Itoa(int(value)))
 }
 
@@ -153,13 +150,11 @@ func ResolveDispute(_ realm, id string) {
 	val := resolve(id)
 	dispute.WinningValue = val
 	dispute.IsResolved = true
-	disputes.Set(id, dispute)
 	// Update the original request with the winning value
 	request := getRequest(id)
 
 	request.ProposedValue = val
 	request.State = "Resolved"
-	requests.Set(id, request)
 	chain.Emit("DisputeResolved", "id", id, "winningValue", strconv.Itoa(int(val)))
 	chain.Emit("RequestResolved", "id", id, "winningValue", strconv.Itoa(int(val)))
 
@@ -206,7 +201,7 @@ func SetVoteTokenPrice(_ realm, price int64) {
 // -- view functions --
 
 // GetDispute returns the details of a specific dispute.
-func GetDispute(id string) Dispute {
+func GetDispute(id string) *Dispute {
 	return getDispute(id)
 }
 
@@ -245,10 +240,10 @@ func GetRevealDuration() int64 {
 
 // Utils functions
 
-func getDispute(id string) Dispute {
+func getDispute(id string) *Dispute {
 	dispute, exists := disputes.Get(id)
 	if !exists {
 		panic("error: Dispute with this ID does not exist.")
 	}
-	return dispute.(Dispute)
+	return dispute.(*Dispute)
 }

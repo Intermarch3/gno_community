@@ -48,7 +48,7 @@ func RequestData(_ realm, ancillaryData string, yesNoQuestion bool, deadline int
 
 	id := idGenerator.Next().String()
 
-	request := DataRequest{
+	request := &DataRequest{
 		Id:            id,
 		Timestamp:     time.Now(),
 		AncillaryData: ancillaryData,
@@ -88,7 +88,6 @@ func ProposeValue(_ realm, id string, proposedValue int64) {
 	request.ProposerBond = bond
 	request.ResolutionTime = time.Now().Add(time.Duration(resolutionTime) * time.Second)
 	request.State = "Proposed"
-	requests.Set(id, request)
 	chain.Emit("ValueProposed", "id", id, "proposedValue", strconv.Itoa(int(proposedValue)), "proposer", request.Proposer.String(), "resolutionTime", request.ResolutionTime.String())
 }
 
@@ -116,7 +115,6 @@ func DisputeData(_ realm, id string) string {
 	request.Disputer = runtime.PreviousRealm().Address()
 	request.DisputerBond = bond
 	request.State = "Disputed"
-	requests.Set(id, request)
 	initiateDispute(id)
 	chain.Emit("DataDisputed", "id", id, "disputer", request.Disputer.String())
 	return "Time: " + time.Now().String()
@@ -143,7 +141,6 @@ func ResolveRequest(_ realm, id string) {
 
 	request.State = "Resolved"
 	request.WinningValue = request.ProposedValue
-	requests.Set(id, request)
 
 	from := runtime.CurrentRealm().Address()
 	to := request.Proposer
@@ -184,7 +181,6 @@ func RequesterRetreiveFund(_ realm, id string) {
 	bank.SendCoins(from, to, refund)
 
 	request.State = "Expired"
-	requests.Set(id, request)
 	chain.Emit("RequestExpired", "id", id)
 }
 
@@ -233,7 +229,7 @@ func ChangeAdmin(_ realm, newAdmin address) {
 // -- VIEW FUNCTIONS --
 
 // GetRequest returns the details of a specific data request.
-func GetRequest(id string) DataRequest {
+func GetRequest(id string) *DataRequest {
 	return getRequest(id)
 }
 
@@ -265,10 +261,10 @@ func GetAdmin() address {
 
 // Utils functions
 
-func getRequest(id string) DataRequest {
+func getRequest(id string) *DataRequest {
 	request, exists := requests.Get(id)
 	if !exists {
 		panic("error: Request with this ID does not exist.")
 	}
-	return request.(DataRequest)
+	return request.(*DataRequest)
 }
