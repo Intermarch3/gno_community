@@ -28,9 +28,9 @@ func resolve(id string) int64 {
 func resolveYesNo(dispute *Dispute) int64 {
 	var (
 		winningValue int64
-		weight int64
-		yesVotes int64
-		noVotes int64
+		weight       int64
+		yesVotes     int64
+		noVotes      int64
 	)
 
 	for _, vote := range dispute.Votes {
@@ -61,7 +61,7 @@ func resolveNumeric(dispute *Dispute) int64 {
 	// Find the value with the most token weight
 	var (
 		winningValue int64
-		maxWeight int64
+		maxWeight    int64
 	)
 
 	// Collect unique values and aggregate weights
