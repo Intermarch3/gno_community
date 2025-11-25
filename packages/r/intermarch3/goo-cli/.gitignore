@@ -1,6 +1,5 @@
 # Binaries
 build/
-goo
 *.exe
 *.exe~
 *.dll
