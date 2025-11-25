@@ -15,7 +15,7 @@ import (
 
 var (
 	disputes        = avl.NewTree()
-	disputeDuration = 2 * int64(time.Minute.Seconds())
+	disputeDuration = 2 * int64(time.Minutes.Seconds())
 	revealDuration  = 2 * int64(time.Minute.Seconds())
 	voteTokenPrice  = 1 * int64(1_000_000) // in GNOT
 	VoteToken       = newOOToken("Gno Optimistic Oracle Token", "goot", 6)
