@@ -17,7 +17,8 @@ This implementation is inspired by the [UMA Optimistic Oracle](https://uma.xyz/)
 The Gno Optimistic Oracle operates on the principle that data proposed to the oracle is assumed to be true. A bond is required for any new proposition. This proposition enters a "liveness" period where anyone can dispute it by posting an equal bond.
 
 - **Happy Path**: If no one disputes the data within the liveness period, it is considered resolved and accepted as truth. The proposer's bond is returned along with a reward.
-- **Unhappy Path (Dispute)**: If the data is disputed, Oracle Token Holders can vote on the correct outcome. This is handled by the `court.gno` contract. Token holders vote, and the outcome is decided by the total token weight backing each value. The winner's bond is returned, and they receive a portion of the loser's slashed bond.
+- **Unhappy Path (Dispute)**: If the data is disputed, OOT (Optimistic Oracle Token) Holders can vote on the correct outcome. This is handled by the `court.gno` contract. Token holders vote, and the outcome is decided by the total token weight backing each value. The winner's bond is returned, and they receive a portion of the loser's slashed bond.
+See [Tokenomics](#tokenomics) to understand how to get an OOT.
 
 ## How It Works: The Lifecycle of a Data Request
 
@@ -49,7 +50,7 @@ A **Disputer** can challenge the Proposer's value.
 - This action pauses the request's resolution and initiates a formal dispute, handled by the `court.gno` contract.
 
 ### 5. Voting (`VoteOnDispute`)
-The dispute is now open for voting by all Oracle Soulbound Token holders. The system uses a **commit-reveal scheme** to prevent vote-copying.
+The dispute is now open for voting by all OOT holders. The system uses a **commit-reveal scheme** to prevent vote-copying.
 
 - **Commit Phase**: During the `DisputeDuration`, voters submit a hash of their vote (`SHA256(value + salt)`) by calling `VoteOnDispute`. They must also pay a small `VotePrice` fee.
 - **Reveal Phase**: After the commit phase ends, the `RevealDuration` begins. Voters must call `RevealVote`, submitting their original `value` and `salt`. The contract verifies that the hash matches the one submitted during the commit phase.
@@ -62,7 +63,7 @@ Once the reveal period is over, anyone can call `ResolveDispute`.
 
 ## Architecture
 
-The oracle contract is composed of three main files :
+The oracle contract is composed of three main files:
 
 - `oracle.gno`: Manages the data request lifecycle (request, propose, dispute, resolve). It is the main entry point for users.
 - `court.gno`: Handles the entire dispute resolution process, including the commit-reveal voting scheme.
@@ -77,16 +78,16 @@ The oracle contract is composed of three main files :
 
 ## Tokenomics
 
-The Oracle Soulbound Token (OOT) is a non-transferable token that represents voting power in the oracle system.
+The token (OOT) is a non-transferable token that represents voting power in the oracle system.
 - **Acquisition**: Users can acquire OOT by calling `BuyInitialVoteToken` and paying a fee in GNOT. This action mints one OOT to the caller's address (can only buy 1 initial token).
-Vote token holders can participate in disputes and earn rewards by voting correctly. By voting correctly, they can earn a portion of the slashed bonds from losing parties and gain 2 Vote tokens, incentivizing accurate and honest participation in the oracle system and increasing their voting power.
+OOT holders can participate in disputes and earn rewards by voting correctly. By voting correctly, they can earn a portion of the slashed bonds from losing parties and gain 2 Vote tokens, incentivizing accurate and honest participation in the oracle system and increasing their voting power.
 - **GNOT Usage**: The reward and the Bond (in GNOT Token) need to be less than the bond to avoid trying to game the system by creating disputes just to earn tokens, as they would lose more from the bond than the reward.
 This design is not final and can be adjusted based on community feedback and economic analysis.
 
 ## Usage Example
 
 Here is a full workflow using `gnokey`.  
-**0. Buy Vote Token for Voter Role**
+**0. Buy OOT for Voter Role (one time action)**
 ```bash
 # Buy Oracle Soulbound Token (replace <voter-key-name> with your key name)
 gnokey maketx call -pkgpath "gno.land/r/intermarch3/goo" -func "BuyInitialVoteToken" -gas-fee 1000000ugnot -gas-wanted 10000000 -send "1000000ugnot" -broadcast -chainid "dev" -remote "tcp://127.0.0.1:26657" <voter-key-name>
