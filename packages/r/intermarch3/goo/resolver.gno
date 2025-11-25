@@ -25,7 +25,7 @@ func resolve(id string) int64 {
 
 // resolveYesNo determines the winning value for yes/no disputes based on the highest total token weight.
 // If 0 votes or equal votes, the proposed value wins by default.
-func resolveYesNo(dispute Dispute) int64 {
+func resolveYesNo(dispute *Dispute) int64 {
 	var (
 		winningValue int64
 		weight int64
@@ -57,7 +57,7 @@ func resolveYesNo(dispute Dispute) int64 {
 
 // resolveNumeric determines the winning value for numeric disputes based on the highest total token weight.
 // Not the best algorithm, but gas effective and fast.
-func resolveNumeric(dispute Dispute) int64 {
+func resolveNumeric(dispute *Dispute) int64 {
 	// Find the value with the most token weight
 	var (
 		winningValue int64
@@ -83,7 +83,7 @@ func resolveNumeric(dispute Dispute) int64 {
 	return winningValue
 }
 
-func rewardAndSlashVoters(dispute Dispute, winningValue, totalWeight int64) {
+func rewardAndSlashVoters(dispute *Dispute, winningValue, totalWeight int64) {
 	for _, vote := range dispute.Votes {
 		if !vote.Revealed {
 			continue

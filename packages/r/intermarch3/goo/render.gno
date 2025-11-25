@@ -33,10 +33,10 @@ func renderHome() string {
 	table = append(table, md.Bold("Question"), md.Bold("Proposed Value"), md.Bold("State"), md.Bold("See more"))
 
 	requests.Iterate("", "", func(key string, value any) bool {
-		if value.(DataRequest).State == "Resolved" {
+		if value.(*DataRequest).State == "Resolved" {
 			return false
 		}
-		table = append(table, renderRequest(value.(DataRequest))...)
+		table = append(table, renderRequest(value.(*DataRequest))...)
 		return false
 	})
 	msg += md.ColumnsN(table, 4, false)
@@ -54,13 +54,13 @@ func renderHome() string {
 	resolved = append(resolved, md.Bold("Question"), md.Bold("Winning Value"), md.Bold("Proposer"), md.Bold("See more"))
 
 	requests.Iterate("", "", func(key string, value any) bool {
-		if value.(DataRequest).State != "Resolved" {
+		if value.(*DataRequest).State != "Resolved" {
 			return false
 		}
-		resolved = append(resolved, md.Paragraph(value.(DataRequest).AncillaryData))
-		resolved = append(resolved, md.Paragraph(rendervalue(value.(DataRequest), value.(DataRequest).WinningValue)))
-		resolved = append(resolved, md.Paragraph(value.(DataRequest).Proposer.String()))
-		resolved = append(resolved, md.Link("Click here", runtime.CurrentRealm().PkgPath()[8:]+":"+value.(DataRequest).Id))
+		resolved = append(resolved, md.Paragraph(value.(*DataRequest).AncillaryData))
+		resolved = append(resolved, md.Paragraph(rendervalue(value.(*DataRequest), value.(*DataRequest).WinningValue)))
+		resolved = append(resolved, md.Paragraph(value.(*DataRequest).Proposer.String()))
+		resolved = append(resolved, md.Link("Click here", runtime.CurrentRealm().PkgPath()[8:]+":"+value.(*DataRequest).Id))
 		return false
 	})
 	msg += md.ColumnsN(resolved, 4, false)
@@ -74,11 +74,7 @@ func renderHome() string {
 
 // renderRequestPage renders the page for a specific request
 func renderRequestPage(id string) string {
-	res, exists := requests.Get(id)
-	if !exists {
-		return md.H1("error: No request with this ID exists.")
-	}
-	req := res.(DataRequest)
+	req := getRequest(id)
 
 	msg := md.H1("Question: " + req.AncillaryData)
 	msg += md.H2("Details:\n\n")
@@ -103,17 +99,17 @@ func renderRequestPage(id string) string {
 	// if the request is resolved, show the winning value and the number of votes
 	if req.State == "Resolved" {
 		msg += md.H3("Winning Value: "+rendervalue(req, req.WinningValue)) + "\n\n"
-		res, exists = disputes.Get(req.Id)
+		res, exists := disputes.Get(req.Id)
 		if !exists {
 			msg += md.Paragraph("Value Proposed by: "+req.Proposer.String()) + "\n\n"
 			return msg
 		}
 
-		dispute := res.(Dispute)
+		dispute := res.(*Dispute)
 		msg += md.Paragraph("Number of Votes: " + strconv.Itoa(len(dispute.Votes)) + "\n\n")
 		msg += md.Paragraph("Reveal Votes: \n\n")
 		if dispute.NbResolvedVotes > 0 {
-			msg += renderRevealedVotes(dispute) + "\n\n"
+			msg += renderRevealedVotes(*dispute) + "\n\n"
 		} else {
 			msg += md.Paragraph("No votes revealed. Proposed value win by default\n\n")
 		}
@@ -130,8 +126,8 @@ func renderRequestPage(id string) string {
 	// if the request is disputed, show the dispute details
 	if req.State == "Disputed" {
 		res, exist := disputes.Get(req.Id)
-		dispute := res.(Dispute)
 		if exist {
+			dispute := res.(*Dispute)
 			msg += md.H2("Dispute Details:\n\n")
 			msg += md.Paragraph("End of Voting Time: " + dispute.EndTime.Format(DateFormat) + "\n\n")
 			msg += md.Paragraph("End of Reveal Time: " + dispute.EndRevealTime.Format(DateFormat))
@@ -139,7 +135,7 @@ func renderRequestPage(id string) string {
 			msg += md.Paragraph("Revealed Votes: \n\n")
 
 			if dispute.NbResolvedVotes > 0 {
-				msg += renderRevealedVotes(dispute) + "\n\n"
+				msg += renderRevealedVotes(*dispute) + "\n\n"
 			} else {
 				msg += md.Paragraph("No votes revealed yet.\n\n")
 			}
@@ -167,7 +163,7 @@ func renderRevealedVotes(dispute Dispute) string {
 	return md.ColumnsN(table, 3, false)
 }
 
-func rendervalue(req DataRequest, val int64) string {
+func rendervalue(req *DataRequest, val int64) string {
 	if req.YesNoQuestion {
 		if val == 1 {
 			return "Yes"
@@ -181,7 +177,7 @@ func rendervalue(req DataRequest, val int64) string {
 	}
 }
 
-func renderRequest(req DataRequest) []string {
+func renderRequest(req *DataRequest) []string {
 	var table []string
 
 	table = append(table, md.Paragraph(req.AncillaryData))
@@ -196,7 +192,7 @@ func renderRequest(req DataRequest) []string {
 }
 
 // return appropriate action link based on the state of the request
-func renderAction(req DataRequest) string {
+func renderAction(req *DataRequest) string {
 	action := md.H2("Actions:\n\n")
 	dispute, _ := disputes.Get(req.Id)
 
@@ -209,12 +205,12 @@ func renderAction(req DataRequest) string {
 	} else if req.State == "Disputed" {
 		if req.ResolutionTime.Before(time.Now()) {
 			// tx to reveal a vote
-			action += md.Link("Reveal vote", ufmt.Sprintf("%s", txlink.NewLink("RevealVote").AddArgs("id", req.Id, "value", "YOUR_VALUE_HERE", "salt", "YOUR_SALT_HERE").URL())) + "\n\n(Note: You must reveal your vote before the reveal period ends at " + dispute.(Dispute).EndRevealTime.UTC().Format(time.UnixDate) + ")"
+			action += md.Link("Reveal vote", ufmt.Sprintf("%s", txlink.NewLink("RevealVote").AddArgs("id", req.Id, "value", "YOUR_VALUE_HERE", "salt", "YOUR_SALT_HERE").URL())) + "\n\n(Note: You must reveal your vote before the reveal period ends at " + dispute.(*Dispute).EndRevealTime.UTC().Format(time.UnixDate) + ")"
 		} else {
 			// tx to vote on a dispute
 			action += md.Link("Vote", ufmt.Sprintf("%s", txlink.NewLink("VoteOnDispute").AddArgs("id", req.Id, "hash", "YOUR_HASH_HERE").URL())) + "\n\n(Note: Voting need to hold a Vote Token and requires you to hash your vote with a salt. Use a tool to generate the sha256 hash and keep your salt safe to reveal your vote)"
 		}
-	} else if req.State == "Disputed" && dispute.(Dispute).EndTime.Before(time.Now()) {
+	} else if req.State == "Disputed" && dispute.(*Dispute).EndTime.Before(time.Now()) {
 		// tx to resolve a dispute
 		action += md.Link("Resolve dispute", ufmt.Sprintf("%s", txlink.NewLink("ResolveDispute").AddArgs("id", req.Id).URL())) + "\n\n"
 	} else if req.State == "Proposed" && req.ResolutionTime.Before(time.Now()) {
