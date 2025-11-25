@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gno.land/p/nt/avl"
+	"gno.land/p/nt/ufmt"
 )
 
 var (
@@ -43,7 +44,7 @@ func BuyInitialVoteToken(_ realm) {
 	caller := runtime.OriginCaller()
 	coins := banker.OriginSend()
 	if len(coins) != 1 || coins.AmountOf("ugnot") != voteTokenPrice {
-		panic("error: Must send exactly " + strconv.Itoa(int(voteTokenPrice/1_000_000)) + " gnot to get a vote token.")
+		panic(ufmt.Sprintf("error: Must send exactly %d gnot to get a vote token.", voteTokenPrice/1_000_000))
 	}
 
 	balance := VoteToken.BalanceOf(caller)
@@ -55,25 +56,24 @@ func BuyInitialVoteToken(_ realm) {
 	chain.Emit("VoteTokenPurchased", "voter", caller.String())
 }
 
-// BalanceOfVoteToken returns the number of vote tokens held by the caller.
-func BalanceOfVoteToken(_ realm) int64 {
-	return VoteToken.BalanceOf(runtime.PreviousRealm().Address())
-}
-
 // VoteOnDispute allows a user to commit a vote during a dispute.
 func VoteOnDispute(_ realm, id string, hash string) {
 	dispute := getDispute(id)
 	res, _ := requests.Get(id)
 	request := res.(DataRequest)
+
 	if request.Proposer == runtime.PreviousRealm().Address() || request.Disputer == runtime.PreviousRealm().Address() {
 		panic("error: Proposer and Disputer cannot vote in this dispute.")
 	}
+
 	if dispute.IsResolved {
 		panic("error: Dispute is already resolved.")
 	}
+
 	if time.Now().After(dispute.EndTime) {
 		panic("error: Vote period has ended.")
 	}
+
 	amount := VoteToken.BalanceOf(runtime.PreviousRealm().Address())
 	if amount < 1 {
 		panic("error: You need at least 1 vote token to vote.")
@@ -86,10 +86,12 @@ func VoteOnDispute(_ realm, id string, hash string) {
 		Hash:        hash,
 		Revealed:    false,
 	}
+
 	voter, exist := dispute.Voters.Get(string(vote.Voter))
 	if exist && voter.(Voter).HasVoted {
 		panic("error: Voter has already voted in this dispute.")
 	}
+
 	dispute.Votes = append(dispute.Votes, vote)
 	dispute.Voters.Set(string(vote.Voter), Voter{HasVoted: true, VoteIndex: int64(len(dispute.Votes) - 1)})
 	disputes.Set(id, dispute)
@@ -99,19 +101,24 @@ func VoteOnDispute(_ realm, id string, hash string) {
 // RevealVote allows a user to reveal their vote after the voting period has ended.
 func RevealVote(_ realm, id string, value int64, salt string) {
 	dispute := getDispute(id)
+
 	if dispute.IsResolved {
 		panic("error: Dispute is resolved.")
 	}
+
 	if time.Now().Before(dispute.EndTime) {
 		panic("error: Vote period has not ended yet.")
 	}
+
 	if time.Now().After(dispute.EndRevealTime) {
 		panic("error: Reveal period has ended.")
 	}
+
 	voter, exist := dispute.Voters.Get(string(runtime.PreviousRealm().Address()))
 	if !exist || !voter.(Voter).HasVoted {
 		panic("error: Voter did not participate in this dispute.")
 	}
+
 	vote := dispute.Votes[voter.(Voter).VoteIndex]
 	if vote.Revealed {
 		panic("error: Vote already revealed.")
@@ -123,6 +130,7 @@ func RevealVote(_ realm, id string, value int64, salt string) {
 	if vote.Hash != expectedHash {
 		panic("error: Hash does not match the revealed value and salt.")
 	}
+
 	vote.Value = value
 	vote.Revealed = true
 	dispute.NbResolvedVotes += 1
@@ -137,9 +145,11 @@ func ResolveDispute(_ realm, id string) {
 	if dispute.IsResolved {
 		panic("error: Dispute is already resolved.")
 	}
+
 	if time.Now().Before(dispute.EndTime) {
 		panic("error: Dispute period has not ended yet.")
 	}
+
 	val := resolve(id)
 	dispute.WinningValue = val
 	dispute.IsResolved = true
@@ -196,40 +206,40 @@ func SetVoteTokenPrice(_ realm, price int64) {
 // -- view functions --
 
 // GetDispute returns the details of a specific dispute.
-func GetDispute(_ realm, id string) Dispute {
+func GetDispute(id string) Dispute {
 	return getDispute(id)
 }
 
 // GetDisputeDuration returns the current dispute duration.
-func GetDisputeDuration(_ realm) int64 {
+func GetDisputeDuration() int64 {
 	return disputeDuration
 }
 
 // GetVoteTokenPrice returns the current vote price.
-func GetVoteTokenPrice(_ realm) int64 {
+func GetVoteTokenPrice() int64 {
 	return voteTokenPrice
 }
 
 // GetDisputeEndTime returns the end time of the voting period for a specific dispute.
-func GetDisputeEndTime(_ realm, id string) time.Time {
+func GetDisputeEndTime(id string) time.Time {
 	dispute := getDispute(id)
 	return dispute.EndTime
 }
 
 // GetDisputeVotesAmount returns the total number of votes cast in a dispute.
-func GetDisputeVotesAmount(_ realm, id string) int64 {
+func GetDisputeVotesAmount(id string) int64 {
 	dispute := getDispute(id)
 	return int64(len(dispute.Votes))
 }
 
 // GetRevealEndTime returns the end time of the reveal period for a specific dispute.
-func GetRevealEndTime(_ realm, id string) time.Time {
+func GetRevealEndTime(id string) time.Time {
 	dispute := getDispute(id)
 	return dispute.EndRevealTime
 }
 
 // GetRevealDuration returns the current reveal duration.
-func GetRevealDuration(_ realm) int64 {
+func GetRevealDuration() int64 {
 	return revealDuration
 }
 

@@ -23,7 +23,7 @@ func TestBuyInitialVoteToken(t *testing.T) {
 	urequire.NotPanics(t, func() {
 		BuyInitialVoteToken(cross)
 	}, "user should be able to buy a vote token by sending the correct amount")
-	amount := BalanceOfVoteToken(cross)
+	amount := VoteToken.BalanceOf(user1)
 	urequire.Equal(t, int64(1), amount, "user should have received a vote token")
 
 	testing.SetRealm(testing.NewUserRealm(user1))

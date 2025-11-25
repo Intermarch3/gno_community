@@ -27,6 +27,7 @@ func renderHome() string {
 	msg += md.Paragraph("For more information, visit the " + md.Link("Readme", runtime.CurrentRealm().PkgPath()[8:]+"$source") + ".")
 	msg += md.Link("Request Data", ufmt.Sprintf("%s", txlink.NewLink("RequestData").AddArgs("ancillaryData", "YOUR_QUESTION", "yesNoQuestion", "true or false", "deadline", "DEADLINE_TIMESTAMP").SetSend(strconv.Itoa(int(requesterReward))+"ugnot").URL())) + "\n\n(Note: Requesting data need to pay a reward of " + strconv.Itoa(int(requesterReward/1_000_000)) + " GNOT to the proposer).\n\n"
 	msg += md.H2("Current requests :")
+
 	// List current requests and build table
 	var table []string
 	table = append(table, md.Bold("Question"), md.Bold("Proposed Value"), md.Bold("State"), md.Bold("See more"))
@@ -48,7 +49,7 @@ func renderHome() string {
 	msg += md.HorizontalRule()
 
 	// List last 5 resolved requests and build table
-	msg += md.H2("Last 5 Resolved requests :")
+	msg += md.H2("Last 5 Resolved requests:")
 	var resolved []string
 	resolved = append(resolved, md.Bold("Question"), md.Bold("Winning Value"), md.Bold("Proposer"), md.Bold("See more"))
 
@@ -107,6 +108,7 @@ func renderRequestPage(id string) string {
 			msg += md.Paragraph("Value Proposed by: "+req.Proposer.String()) + "\n\n"
 			return msg
 		}
+
 		dispute := res.(Dispute)
 		msg += md.Paragraph("Number of Votes: " + strconv.Itoa(len(dispute.Votes)) + "\n\n")
 		msg += md.Paragraph("Reveal Votes: \n\n")
@@ -135,6 +137,7 @@ func renderRequestPage(id string) string {
 			msg += md.Paragraph("End of Reveal Time: " + dispute.EndRevealTime.Format(DateFormat))
 			msg += md.Paragraph("Number of Votes: " + strconv.Itoa(len(dispute.Votes)) + "\n\n")
 			msg += md.Paragraph("Revealed Votes: \n\n")
+
 			if dispute.NbResolvedVotes > 0 {
 				msg += renderRevealedVotes(dispute) + "\n\n"
 			} else {
@@ -152,8 +155,10 @@ func renderRequestPage(id string) string {
 // create table of the votes that have been revealed
 func renderRevealedVotes(dispute Dispute) string {
 	var table []string
+
 	table = append(table, md.Bold("Voter"), md.Bold("Vote"), md.Bold("Token Amount"))
 	request := getRequest(dispute.RequestId)
+
 	for _, vote := range dispute.Votes {
 		if vote.Revealed {
 			table = append(table, md.Paragraph(vote.Voter.String()), md.Paragraph(rendervalue(request, vote.Value)), md.Paragraph(strconv.Itoa(int(vote.TokenAmount))))
@@ -178,6 +183,7 @@ func rendervalue(req DataRequest, val int64) string {
 
 func renderRequest(req DataRequest) []string {
 	var table []string
+
 	table = append(table, md.Paragraph(req.AncillaryData))
 	if req.State == "Requested" {
 		table = append(table, md.Paragraph("N/A"))
@@ -193,6 +199,7 @@ func renderRequest(req DataRequest) []string {
 func renderAction(req DataRequest) string {
 	action := md.H2("Actions:\n\n")
 	dispute, _ := disputes.Get(req.Id)
+
 	if req.State == "Requested" {
 		// tx to propose a value
 		action += md.Link("Propose a value", ufmt.Sprintf("%s", txlink.NewLink("ProposeValue").AddArgs("id", req.Id, "proposedValue", "YOUR_VALUE_HERE").SetSend(strconv.Itoa(int(bond))+"ugnot").URL())) + "\n\n(Note: Proposing need to bond " + strconv.Itoa(int(bond/1_000_000)) + " GNOT)"

@@ -9,6 +9,7 @@ import (
 
 	"gno.land/p/nt/avl"
 	"gno.land/p/nt/seqid"
+	"gno.land/p/nt/ufmt"
 )
 
 var (
@@ -29,18 +30,20 @@ func init() {
 
 // RequestData allows a user to request data from the oracle.
 // `requesterReward` value needs to be sent to the contract as a reward
+// `deadline`is the timestamp in unix format for the deadline of the request.
 // You need to ask a question that can be answered with a single number like a yes/no question (0 or 1) or a specific value (e.g. ETH/USD price).
 func RequestData(_ realm, ancillaryData string, yesNoQuestion bool, deadline int64) string {
 	if ancillaryData == "" {
 		panic("error: Ancillary data cannot be empty.")
 	}
+
 	if deadline < time.Now().Add(24*time.Hour).Unix() {
 		panic("error: Deadline must be at least 24 hours in the future.")
 	}
 
 	coins := banker.OriginSend()
 	if len(coins) != 1 || coins.AmountOf("ugnot") != requesterReward {
-		panic("error: Incorrect reward amount sent. Required: " + strconv.FormatInt(requesterReward, 10) + " ugnot.")
+		panic(ufmt.Sprintf("error: Incorrect reward amount sent. Required: %d ugnot.", requesterReward))
 	}
 
 	id := idGenerator.Next().String()
@@ -66,9 +69,11 @@ func ProposeValue(_ realm, id string, proposedValue int64) {
 	if request.State != "Requested" {
 		panic("error: Request is not in 'Requested' state.")
 	}
+
 	if request.YesNoQuestion && proposedValue != 0 && proposedValue != 1 {
 		panic("error: Proposed value must be 0 or 1 for yes/no questions.")
 	}
+
 	if time.Now().After(request.Deadline) {
 		panic("error: Deadline for proposal has passed.")
 	}
@@ -94,9 +99,11 @@ func DisputeData(_ realm, id string) string {
 	if request.Proposer == runtime.PreviousRealm().Address() {
 		panic("error: Proposer cannot dispute their own proposal.")
 	}
+
 	if request.State != "Proposed" {
 		panic("error: Request is not in 'Proposed' state.")
 	}
+
 	if time.Now().After(request.ResolutionTime) {
 		panic("error: Dispute period has ended.")
 	}
@@ -121,15 +128,19 @@ func ResolveRequest(_ realm, id string) {
 	if request.State == "Disputed" {
 		panic("error: Request is in 'Disputed' state.")
 	}
+
 	if request.State == "Proposed" && request.ResolutionTime.After(time.Now()) {
 		panic("error: Resolution period has not ended yet.")
 	}
+
 	if request.State == "Requested" {
 		panic("error: Request has not been proposed yet.")
 	}
+
 	if request.State == "Resolved" {
 		panic("error: Request is already resolved.")
 	}
+
 	request.State = "Resolved"
 	request.WinningValue = request.ProposedValue
 	requests.Set(id, request)
@@ -158,9 +169,11 @@ func RequesterRetreiveFund(_ realm, id string) {
 	if request.State != "Requested" {
 		panic("error: cannot retreive fund as requests fulfilled.")
 	}
+
 	if request.Creator != runtime.PreviousRealm().Address() {
 		panic("error: Only the creator of the request can retrieve the fund.")
 	}
+
 	if request.Deadline.After(time.Now()) {
 		panic("error: Cannot retrieve fund before the deadline.")
 	}
@@ -220,33 +233,33 @@ func ChangeAdmin(_ realm, newAdmin address) {
 // -- VIEW FUNCTIONS --
 
 // GetRequest returns the details of a specific data request.
-func GetRequest(_ realm, id string) DataRequest {
+func GetRequest(id string) DataRequest {
 	return getRequest(id)
 }
 
 // GetBond returns the current bond amount.
-func GetBond(_ realm) int64 {
+func GetBond() int64 {
 	return bond
 }
 
 // GetResolutionTime returns the current resolution time duration.
-func GetResolutionTime(_ realm) int64 {
+func GetResolutionTime() int64 {
 	return resolutionTime
 }
 
 // GetRequesterReward returns the current requester reward amount.
-func GetRequesterReward(_ realm) int64 {
+func GetRequesterReward() int64 {
 	return requesterReward
 }
 
 // GetRequeststate returns the current state of a specific data request.
-func GetRequeststate(_ realm, id string) string {
+func GetRequeststate(id string) string {
 	request := getRequest(id)
 	return request.State
 }
 
 // GetAdmin returns the current admin address.
-func GetAdmin(_ realm) address {
+func GetAdmin() address {
 	return admin
 }
 
